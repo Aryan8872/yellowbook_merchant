@@ -28,6 +28,9 @@ Establish the foundational NestJS HTTP API client with response envelope standar
   - **Right panel:** Minimalist, high-conversion card featuring Email/Password login inputs, Google OAuth sign-in button, "Forgot password" link, and dark/light mode toggle.
 - **D-07:** Post-login redirection sends authenticated `MERCHANT_ADMIN` users directly to `/merchant/dashboard` (or the requested `returnUrl`).
 
+### Client State Management
+- **D-08:** Adopt Zustand for global client-side state management (`lib/auth/auth-store.ts`) with `persist` middleware to eliminate Provider nesting, optimize fine-grained re-renders, and enable out-of-component state access.
+
 ### the agent's Discretion
 - Form validation schemas (Zod) and form control wiring (react-hook-form).
 - Exact cookie options (`SameSite`, `Secure`, `Path`, `Max-Age`).
