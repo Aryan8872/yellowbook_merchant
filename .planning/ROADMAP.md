@@ -9,7 +9,7 @@ The OfferNepal Merchant Web Portal equips partner merchants with full autonomy o
 ## Phases
 
 - [x] **Phase 1: API Foundation & Authentication** - Establish standard NestJS API envelope client, mock fallbacks, JWT/Google OAuth session management, and auth route guards.
-- [ ] **Phase 2: Merchant Profile & Venue Settings** - Business info, legal KYC/PAN details, bank payout configurations, and notification preferences.
+- [x] **Phase 2: Merchant Profile & Venue Settings** - Business info, legal KYC/PAN details, bank payout configurations, and notification preferences.
 - [ ] **Phase 3: Branch Management & Geofencing** - Complete branch CRUD with interactive operating hours, GPS coordinate capture, and geofence radius settings.
 - [ ] **Phase 4: Offer Lifecycle & BOGO Management** - Deal creation wizard, category mapping, validity/blackout rules, per-branch scoping, and instant status toggling.
 - [ ] **Phase 5: Redemption Audit Ledger & Fraud Monitoring** - Real-time redemption activity feed, advanced multi-attribute filtering, CSV/Excel export, and velocity/fraud alert tags.
@@ -47,8 +47,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Profile API service layer, schema validation, and merchant information editing view.
-- [ ] 02-02: Bank payout account management form and notification preference toggles.
+- [x] 02-01: Profile API service layer, schema validation, and merchant information editing view.
+- [x] 02-02: Bank payout account management form and notification preference toggles.
 
 ---
 
@@ -130,7 +130,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 1. API Foundation & Authentication | 3/3 | Complete | 2026-10-05 |
-| 2. Merchant Profile & Venue Settings | 0/2 | Not started | - |
+| 2. Merchant Profile & Venue Settings | 2/2 | Complete | 2026-10-05 |
 | 3. Branch Management & Geofencing | 0/3 | Not started | - |
 | 4. Offer Lifecycle & BOGO Management | 0/3 | Not started | - |
 | 5. Redemption Audit Ledger & Fraud Monitoring | 0/2 | Not started | - |
