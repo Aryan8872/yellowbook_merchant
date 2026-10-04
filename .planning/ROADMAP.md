@@ -8,7 +8,7 @@ The OfferNepal Merchant Web Portal equips partner merchants with full autonomy o
 
 ## Phases
 
-- [ ] **Phase 1: API Foundation & Authentication** - Establish standard NestJS API envelope client, mock fallbacks, JWT/Google OAuth session management, and auth route guards.
+- [x] **Phase 1: API Foundation & Authentication** - Establish standard NestJS API envelope client, mock fallbacks, JWT/Google OAuth session management, and auth route guards.
 - [ ] **Phase 2: Merchant Profile & Venue Settings** - Business info, legal KYC/PAN details, bank payout configurations, and notification preferences.
 - [ ] **Phase 3: Branch Management & Geofencing** - Complete branch CRUD with interactive operating hours, GPS coordinate capture, and geofence radius settings.
 - [ ] **Phase 4: Offer Lifecycle & BOGO Management** - Deal creation wizard, category mapping, validity/blackout rules, per-branch scoping, and instant status toggling.
@@ -30,9 +30,9 @@ The OfferNepal Merchant Web Portal equips partner merchants with full autonomy o
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Standardized NestJS API envelope client, TypeScript DTO contracts, and resilient mock provider.
-- [ ] 01-02: Auth state management, JWT token persistence, refresh interceptors, and route middleware protection.
-- [ ] 01-03: Login, Google OAuth button, and Password Reset UI pages integrated with auth service.
+- [x] 01-01: Standardized NestJS API envelope client, TypeScript DTO contracts, and resilient mock provider.
+- [x] 01-02: Auth state management, JWT token persistence, refresh interceptors, and route middleware protection.
+- [x] 01-03: Login, Google OAuth button, and Password Reset UI pages integrated with auth service.
 
 ---
 
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 1. API Foundation & Authentication | 0/3 | Not started | - |
+| 1. API Foundation & Authentication | 3/3 | Complete | 2026-10-05 |
 | 2. Merchant Profile & Venue Settings | 0/2 | Not started | - |
 | 3. Branch Management & Geofencing | 0/3 | Not started | - |
 | 4. Offer Lifecycle & BOGO Management | 0/3 | Not started | - |
