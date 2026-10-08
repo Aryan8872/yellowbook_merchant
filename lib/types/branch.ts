@@ -4,6 +4,7 @@ export interface Branch {
   name: string
   address: string
   city: string
+  district?: string
   phone: string
   lat: number
   lng: number
@@ -17,6 +18,7 @@ export interface CreateBranchDto {
   name: string
   address: string
   city: string
+  district?: string
   lat: number
   lng: number
   phone: string
@@ -28,6 +30,7 @@ export interface UpdateBranchDto {
   name?: string
   address?: string
   city?: string
+  district?: string
   lat?: number
   lng?: number
   phone?: string

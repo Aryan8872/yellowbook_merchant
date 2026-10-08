@@ -33,7 +33,7 @@ type FormState = {
   title: string
   description: string
   terms: string
-  categoryId: string
+  categoryId: string | null
   originalPriceNpr: string
   discountPercentage: string
   coverImage: string
@@ -50,7 +50,7 @@ const EMPTY: FormState = {
   title: '',
   description: '',
   terms: '',
-  categoryId: '',
+  categoryId: null,
   originalPriceNpr: '',
   discountPercentage: '',
   coverImage: '',
@@ -323,7 +323,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
             </Field>
 
             <Field label="Category" id="offer-category" error={errors.categoryId}>
-              <Select value={form.categoryId} onValueChange={(value) => setForm({ ...form, categoryId: value })}>
+              <Select value={form.categoryId ?? ''} onValueChange={(value) => setForm({ ...form, categoryId: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>

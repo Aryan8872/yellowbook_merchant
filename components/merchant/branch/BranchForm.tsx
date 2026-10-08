@@ -34,6 +34,7 @@ type District = typeof DISTRICTS[number]
 type FormState = {
   name: string
   address: string
+  city: string
   district: District
   lat: string
   lng: string
@@ -43,6 +44,7 @@ type FormState = {
 const EMPTY: FormState = {
   name: '',
   address: '',
+  city: '',
   district: 'KATHMANDU',
   lat: '',
   lng: '',
@@ -118,6 +120,7 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
       setForm({
         name: branch.name,
         address: branch.address,
+        city: branch.city || '',
         district: (branch.district as District) || 'KATHMANDU',
         lat: String(branch.lat),
         lng: String(branch.lng),
@@ -159,23 +162,24 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
         district: form.district,
         lat: Number(form.lat),
         lng: Number(form.lng),
-        phone: form.phone.trim(),
+        phone: form.phone.trim() || '',
         operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
       }
-      await updateBranch(effectiveMerchantId, branch!.id, payload)
+      await updateBranch(effectiveMerchantId || '', branch!.id, payload)
       handleOpenChange(false)
       onUpdated?.()
     } else {
       const payload: CreateBranchDto = {
         name: form.name.trim(),
         address: form.address.trim(),
+        city: form.city || 'Kathmandu',
         district: form.district,
         lat: Number(form.lat),
         lng: Number(form.lng),
-        phone: form.phone.trim(),
+        phone: form.phone.trim() || '',
         operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
       }
-      await createBranch(effectiveMerchantId, payload)
+      await createBranch(effectiveMerchantId || '', payload)
       handleOpenChange(false)
       onCreated?.()
     }

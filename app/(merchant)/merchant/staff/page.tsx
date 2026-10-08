@@ -35,7 +35,7 @@ export default function StaffPage() {
   }, [fetchStaff]);
 
   const handleToggleStatus = async (staffMember: Staff) => {
-    await updateStaff(merchantId!, staffMember.id, {
+    await updateStaff(staffMember.id, {
       isActive: !staffMember.isActive,
     });
   };
@@ -57,7 +57,7 @@ export default function StaffPage() {
     e.preventDefault();
     
     if (editingStaff) {
-      await updateStaff(merchantId!, editingStaff.id, {
+      await updateStaff(editingStaff.id, {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -68,7 +68,7 @@ export default function StaffPage() {
         toast.error('Password is required for new staff');
         return;
       }
-      await createStaff(merchantId!, {
+      await createStaff({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,

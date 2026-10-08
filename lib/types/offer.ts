@@ -34,6 +34,7 @@ export type Offer={
     terms?:string;
     estimatedSavingsNpr?:number;
     originalPriceNpr?:number;
+    discountedPriceNpr?:number;
     discountPercentage?:number;
     coverImage?:string;
     images?:string[];

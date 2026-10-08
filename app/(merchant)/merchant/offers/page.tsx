@@ -13,7 +13,7 @@ import { Offer } from "@/lib/api/merchant/offers-api"
 export default function MerchantOffersPage() {
   const { merchantId } = useAuthStore();
   const { offers, loading, error, pagination, fetchOffers, deleteOffer, toggleOfferStatus, toggleOfferFeatured, clearError } = useMerchantOffersStore();
-  const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
+  const [editingOffer, setEditingOffer] = useState<Offer | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   useEffect(() => {
@@ -165,7 +165,7 @@ export default function MerchantOffersPage() {
         onOpenChange={setIsEditDialogOpen}
         onUpdated={() => {
           setIsEditDialogOpen(false);
-          setEditingOffer(null);
+          setEditingOffer(undefined);
           merchantId && fetchOffers(merchantId);
         }}
       />
