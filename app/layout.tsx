@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Space_Grotesk, Montserrat } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { Toaster } from "@/components/ui/sonner";
 
 const montserratHeading = Montserrat({subsets:['latin'],variable:'--font-heading'});
 
@@ -24,8 +26,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", spaceGrotesk.variable, montserratHeading.variable)}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body suppressHydrationWarning>
+        <ErrorBoundary>
+          <ThemeProvider>{children}</ThemeProvider>
+        </ErrorBoundary>
+        <Toaster />
       </body>
     </html>
   )

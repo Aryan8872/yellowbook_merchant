@@ -10,10 +10,12 @@ The OfferNepal Merchant Web Portal equips partner merchants with full autonomy o
 
 - [x] **Phase 1: API Foundation & Authentication** - Establish standard NestJS API envelope client, mock fallbacks, JWT/Google OAuth session management, and auth route guards.
 - [x] **Phase 2: Merchant Profile & Venue Settings** - Business info, legal KYC/PAN details, bank payout configurations, and notification preferences.
-- [ ] **Phase 3: Branch Management & Geofencing** - Complete branch CRUD with interactive operating hours, GPS coordinate capture, and geofence radius settings.
-- [ ] **Phase 4: Offer Lifecycle & BOGO Management** - Deal creation wizard, category mapping, validity/blackout rules, per-branch scoping, and instant status toggling.
-- [ ] **Phase 5: Redemption Audit Ledger & Fraud Monitoring** - Real-time redemption activity feed, advanced multi-attribute filtering, CSV/Excel export, and velocity/fraud alert tags.
-- [ ] **Phase 6: Performance Analytics & ROI Dashboard** - Footfall impact metrics, redemption time-series charts, branch comparisons, top offers leaderboard, and off-peak hour heatmaps.
+- [ ] **Phase 3: Admin Panel & RBAC Implementation** - Role-based access control middleware, admin dashboard UIs with shadcn components, and admin API integration.
+- [ ] **Phase 4: Admin Panel Completion & Testing** - Verify backend admin endpoints, test authentication flow, complete admin UI components, and test with real API data.
+- [ ] **Phase 5: Branch Management & Geofencing** - Complete branch CRUD with interactive operating hours, GPS coordinate capture, and geofence radius settings.
+- [ ] **Phase 6: Offer Lifecycle & BOGO Management** - Deal creation wizard, category mapping, validity/blackout rules, per-branch scoping, and instant status toggling.
+- [ ] **Phase 7: Redemption Audit Ledger & Fraud Monitoring** - Real-time redemption activity feed, advanced multi-attribute filtering, CSV/Excel export, and velocity/fraud alert tags.
+- [ ] **Phase 8: Performance Analytics & ROI Dashboard** - Footfall impact metrics, redemption time-series charts, branch comparisons, top offers leaderboard, and off-peak hour heatmaps.
 
 ---
 
@@ -52,7 +54,47 @@ Plans:
 
 ---
 
-### Phase 3: Branch Management & Geofencing
+### Phase 3: Admin Panel & RBAC Implementation
+**Goal**: Implement role-based access control middleware, create admin dashboard UIs with shadcn components, and integrate admin-specific API endpoints.
+**Depends on**: Phase 1
+**Requirements**: [RBAC-01, RBAC-02, RBAC-03, ADMIN-01, ADMIN-02, ADMIN-03]
+**Success Criteria**:
+  1. RBAC middleware enforces role-based access (ADMIN, MERCHANT_ADMIN, MERCHANT_STAFF) to protected routes.
+  2. Admin dashboard displays with shadcn components for user management, merchant management, and system overview.
+  3. Admin API endpoints are connected and properly authenticated with role validation.
+  4. Unauthorized users are redirected to appropriate login pages based on their role.
+**Plans**: 3 plans
+
+Plans:
+- [x] 03-01: RBAC middleware implementation with role validation and route protection.
+- [x] 03-02: Admin dashboard layout with shadcn components and navigation.
+- [x] 03-03: Admin API integration for user management, merchant management, and system analytics.
+
+---
+
+### Phase 4: Admin Panel Completion & Testing
+**Goal**: Verify backend admin endpoints exist, test authentication flow, complete remaining admin UI components, and test admin panel with real API data.
+**Depends on**: Phase 3
+**Requirements**: [RBAC-01, RBAC-02, RBAC-03, ADMIN-01, ADMIN-02, ADMIN-03]
+**Success Criteria**:
+  1. Backend admin endpoints (`/api/v1/admin/users`, `/api/v1/admin/merchants`, `/api/v1/admin/analytics`) are verified to exist and match frontend expectations.
+  2. Authentication flow (login, token refresh, role-based redirects) works correctly with enhanced middleware.
+  3. Admin user edit dialog component is implemented.
+  4. Admin merchant details page is created.
+  5. Toast notifications are added for success/error messages in admin pages.
+  6. Admin panel is tested with real API data.
+  7. Merchant dashboard is tested with real analytics data.
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01: Verify backend admin endpoints and API contract compatibility.
+- [ ] 04-02: Test complete authentication flow (login, token refresh, role-based redirects).
+- [ ] 04-03: Complete admin UI components (user edit dialog, merchant details page).
+- [ ] 04-04: Add error handling and toast notifications to admin pages.
+
+---
+
+### Phase 5: Branch Management & Geofencing
 **Goal**: Provide full CRUD control over physical merchant venues, GPS coordinates, operating schedules, and geofence radius limits.
 **Depends on**: Phase 1
 **Requirements**: [BRANCH-01, BRANCH-02, BRANCH-03, BRANCH-04, BRANCH-05, INFRA-03]
@@ -63,15 +105,15 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Branch API client, data models, and branch listing table with search/filtering.
-- [ ] 03-02: Branch creation and editing modal/page with operating hours schedule builder.
-- [ ] 03-03: Geolocation picker / coordinate validator and geofence radius configuration.
+- [ ] 05-01: Branch API client, data models, and branch listing table with search/filtering.
+- [ ] 05-02: Branch creation and editing modal/page with operating hours schedule builder.
+- [ ] 05-03: Geolocation picker / coordinate validator and geofence radius configuration.
 
 ---
 
-### Phase 4: Offer Lifecycle & BOGO Management
+### Phase 6: Offer Lifecycle & BOGO Management
 **Goal**: Deliver a comprehensive deal management engine for creating, scheduling, and activating 2-for-1 BOGO offers.
-**Depends on**: Phase 3
+**Depends on**: Phase 5
 **Requirements**: [OFFER-01, OFFER-02, OFFER-03, OFFER-04, OFFER-05, OFFER-06, INFRA-03]
 **Success Criteria**:
   1. Merchant can view offers organized by status tabs (Active, Draft, Pending, Paused, Expired).
@@ -80,15 +122,15 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Offer management data table with status filtering, quick toggles, and detail view.
-- [ ] 04-02: Multi-step offer creation form (deal mechanics, pricing/estimated value, terms).
-- [ ] 04-03: Branch assignment selector, validity calendar, and blackout date picker.
+- [ ] 06-01: Offer management data table with status filtering, quick toggles, and detail view.
+- [ ] 06-02: Multi-step offer creation form (deal mechanics, pricing/estimated value, terms).
+- [ ] 06-03: Branch assignment selector, validity calendar, and blackout date picker.
 
 ---
 
-### Phase 5: Redemption Audit Ledger & Fraud Monitoring
+### Phase 7: Redemption Audit Ledger & Fraud Monitoring
 **Goal**: Give merchants an auditable, real-time log of customer redemptions with filtering, CSV export, and fraud detection flags.
-**Depends on**: Phase 4
+**Depends on**: Phase 5
 **Requirements**: [REDEMPTION-01, REDEMPTION-02, REDEMPTION-03, REDEMPTION-04, REDEMPTION-05, INFRA-03]
 **Success Criteria**:
   1. Merchant can review real-time redemptions with customer details, verifying staff/PIN ID, and timestamp.
@@ -98,14 +140,14 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Redemption ledger DataTable with date-range filters, branch filters, and transaction search.
-- [ ] 05-02: Detailed redemption transaction drawer, fraud/anomaly alert badges, and CSV export utility.
+- [ ] 07-01: Redemption ledger DataTable with date-range filters, branch filters, and transaction search.
+- [ ] 07-02: Detailed redemption transaction drawer, fraud/anomaly alert badges, and CSV export utility.
 
 ---
 
-### Phase 6: Performance Analytics & ROI Dashboard
+### Phase 8: Performance Analytics & ROI Dashboard
 **Goal**: Deliver actionable business intelligence proving footfall impact, customer savings, and off-peak table/capacity utilization.
-**Depends on**: Phase 5
+**Depends on**: Phase 6
 **Requirements**: [ANALYTICS-01, ANALYTICS-02, ANALYTICS-03, ANALYTICS-04, ANALYTICS-05]
 **Success Criteria**:
   1. Dashboard displays core KPI summary cards (Total Footfall, Customer Savings, Active Offers, Total Redemptions).
@@ -116,22 +158,24 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Analytics data aggregators, KPI stat cards, and time-series redemption volume charts.
-- [ ] 06-02: Branch performance comparative bar charts and top-performing offers leaderboard.
-- [ ] 06-03: Capacity & off-peak hour heatmap component showing redemption density.
+- [ ] 08-01: Analytics data aggregators, KPI stat cards, and time-series redemption volume charts.
+- [ ] 08-02: Branch performance comparative bar charts and top-performing offers leaderboard.
+- [ ] 08-03: Capacity & off-peak hour heatmap component showing redemption density.
 
 ---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 1. API Foundation & Authentication | 3/3 | Complete | 2026-10-05 |
 | 2. Merchant Profile & Venue Settings | 2/2 | Complete | 2026-10-05 |
-| 3. Branch Management & Geofencing | 0/3 | Not started | - |
-| 4. Offer Lifecycle & BOGO Management | 0/3 | Not started | - |
-| 5. Redemption Audit Ledger & Fraud Monitoring | 0/2 | Not started | - |
-| 6. Performance Analytics & ROI Dashboard | 0/3 | Not started | - |
+| 3. Admin Panel & RBAC Implementation | 3/3 | Complete | 2026-10-06 |
+| 4. Admin Panel Completion & Testing | 0/4 | Not started | - |
+| 5. Branch Management & Geofencing | 0/3 | Not started | - |
+| 6. Offer Lifecycle & BOGO Management | 0/3 | Not started | - |
+| 7. Redemption Audit Ledger & Fraud Monitoring | 0/2 | Not started | - |
+| 8. Performance Analytics & ROI Dashboard | 0/3 | Not started | - |
