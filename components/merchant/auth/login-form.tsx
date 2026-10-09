@@ -38,6 +38,7 @@ export function LoginForm() {
         return;
       }
 
+      setIsSubmitting(false);
       router.push(returnUrl);
     } catch (err: any) {
       setError(err?.message || 'Failed to authenticate. Please check your network.');
@@ -125,7 +126,7 @@ export function LoginForm() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold"
+            className="w-full font-bold shadow-md bg-amber-500 hover:bg-amber-600 text-neutral-950"
           >
             {isSubmitting ? (
               <>
