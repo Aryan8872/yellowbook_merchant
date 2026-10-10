@@ -127,7 +127,28 @@ export function DataTable<TData>({
     }
   }, [searchText, pagination.pageIndex, pagination.pageSize, sorting, onQueryChange])
 
-  const searchColumn = columns.find((col: any) => col.accessorKey === searchKey)
+  // Apply client-side filtering if no server-side onQueryChange handler is provided
+  const filteredData = React.useMemo(() => {
+    if (!data || !Array.isArray(data)) return []
+    if (onQueryChange || !searchText.trim()) return data
+
+    const query = searchText.trim().toLowerCase()
+    return data.filter((row: any) => {
+      if (!row) return false
+      // If searchKey specified, check that property first
+      if (searchKey && row[searchKey] !== undefined && row[searchKey] !== null) {
+        if (String(row[searchKey]).toLowerCase().includes(query)) return true
+      }
+      // Also check all string/number fields of the row
+      return Object.values(row).some((val) => {
+        if (val === null || val === undefined) return false
+        if (typeof val === 'string' || typeof val === 'number') {
+          return String(val).toLowerCase().includes(query)
+        }
+        return false
+      })
+    })
+  }, [data, searchText, searchKey, onQueryChange])
 
   return (
     <div className="space-y-4">
@@ -171,8 +192,8 @@ export function DataTable<TData>({
           </TableHeader>
 
           <TableBody>
-            {data?.length > 0 ? (
-              data.map((row: any, rowIndex: number) => (
+            {filteredData?.length > 0 ? (
+              filteredData.map((row: any, rowIndex: number) => (
                 <TableRow key={row.id || rowIndex}>
                   {columns.map((col: any, colIndex: number) => (
                     <TableCell key={colIndex}>

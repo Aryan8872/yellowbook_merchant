@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -172,7 +172,6 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
       const payload: CreateBranchDto = {
         name: form.name.trim(),
         address: form.address.trim(),
-        city: form.city || 'Kathmandu',
         district: form.district,
         lat: Number(form.lat),
         lng: Number(form.lng),
@@ -298,13 +297,14 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading
-                  ? isEditMode
-                    ? 'Saving…'
-                    : 'Adding…'
-                  : isEditMode
-                  ? 'Save changes'
-                  : 'Add branch'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditMode ? 'Saving…' : 'Adding…'}
+                  </>
+                ) : (
+                  isEditMode ? 'Save changes' : 'Add branch'
+                )}
               </Button>
             </DialogFooter>
           </form>

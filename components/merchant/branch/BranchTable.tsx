@@ -37,7 +37,8 @@ export function BranchTable({ branches, isLoading, merchantId, onRefresh }: Bran
     return branchesArray.filter(
       (branch) =>
         branch.name.toLowerCase().includes(query) ||
-        branch.city.toLowerCase().includes(query) ||
+        branch.city?.toLowerCase().includes(query) ||
+        branch.district?.toLowerCase().includes(query) ||
         branch.address.toLowerCase().includes(query)
     )
   }, [branches, searchQuery])

@@ -3,7 +3,7 @@ export interface Branch {
   merchantId: string
   name: string
   address: string
-  city: string
+  city?: string
   district?: string
   phone: string
   lat: number
@@ -17,7 +17,7 @@ export interface Branch {
 export interface CreateBranchDto {
   name: string
   address: string
-  city: string
+  city?: string
   district?: string
   lat: number
   lng: number

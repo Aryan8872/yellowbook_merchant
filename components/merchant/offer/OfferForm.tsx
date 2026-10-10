@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, Pencil, Upload, X } from 'lucide-react'
+import { Plus, Pencil, Upload, X, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -104,6 +104,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
   const [errors, setErrors] = React.useState<Errors>({})
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [categories, setCategories] = React.useState<Category[]>([])
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   // Fetch categories on mount
   React.useEffect(() => {
@@ -143,6 +144,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
     }
 
   function handleOpenChange(next: boolean) {
+    if (isSubmitting) return
     setOpen(next)
     if (!next) {
       setForm(EMPTY)
@@ -168,6 +170,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
       setServerError('No merchant ID found')
       return
     }
+
+    setIsSubmitting(true)
 
     try {
       const payload: any = {
@@ -262,6 +266,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
       }
     } catch (err: any) {
       setServerError(err?.message || 'Failed to submit offer')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -546,12 +552,20 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
               <Button
                 type="button"
                 variant="outline"
+                disabled={isSubmitting}
                 onClick={() => handleOpenChange(false)}
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                {isEditMode ? 'Save changes' : 'Create offer'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditMode ? 'Saving changes...' : 'Creating offer...'}
+                  </>
+                ) : (
+                  isEditMode ? 'Save changes' : 'Create offer'
+                )}
               </Button>
             </DialogFooter>
           </form>
