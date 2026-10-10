@@ -38,8 +38,8 @@ export function LoginForm() {
         return;
       }
 
-      setIsSubmitting(false);
-      router.push(returnUrl);
+      // Full navigation ensures fresh cookies are read by middleware and layouts
+      window.location.assign(returnUrl);
     } catch (err: any) {
       setError(err?.message || 'Failed to authenticate. Please check your network.');
       setIsSubmitting(false);

@@ -31,8 +31,14 @@ export const useAuthStore = create<AuthState>()(
           const res = await fetch('/api/auth/me');
           if (res.ok) {
             const json = await res.json();
-            if (json?.data) {
-              set({ user: json.data, merchantId: json.data.merchantId ?? null, isInitialized: true, isLoading: false });
+            const userData = json?.data?.user || json?.data;
+            if (userData && userData.id) {
+              set({
+                user: userData,
+                merchantId: userData.merchantId ?? null,
+                isInitialized: true,
+                isLoading: false,
+              });
               return;
             }
           }

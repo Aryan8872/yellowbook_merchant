@@ -41,7 +41,19 @@ async function rotateTokens(request: NextRequest, returnUrl?: string | null) {
       return res;
     }
 
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
+    const tokens = data.data?.tokens || data.data || {};
+    const newAccessToken = tokens.accessToken;
+    const newRefreshToken = tokens.refreshToken;
+
+    if (!newAccessToken) {
+      const res = NextResponse.json(
+        { success: false, message: 'Invalid token structure received from auth service' },
+        { status: 401 }
+      );
+      res.cookies.delete('accessToken');
+      res.cookies.delete('refreshToken');
+      return res;
+    }
     const isProduction = process.env.NODE_ENV === 'production';
 
     // GET navigations from middleware get redirected back to their origin

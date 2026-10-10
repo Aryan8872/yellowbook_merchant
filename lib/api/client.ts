@@ -18,6 +18,7 @@ interface RequestOptions extends RequestInit {
 }
 
 let isRefreshing = false;
+let activeRefreshPromise: Promise<boolean> | null = null;
 let refreshSubscribers: Array<(token: string) => void> = [];
 
 function subscribeTokenRefresh(callback: (token: string) => void) {
@@ -35,7 +36,17 @@ export async function request<T = any>(
 ): Promise<ApiResponse<T>> {
   const { token, params, headers, skipAuthRefresh, ...customConfig } = options;
 
-  let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const isBrowser = typeof window !== 'undefined';
+  let url: string;
+  if (endpoint.startsWith('http')) {
+    url = endpoint;
+  } else if (isBrowser) {
+    // When executing in browser, use same-origin relative URL so HttpOnly cookies are sent
+    url = endpoint;
+  } else {
+    // When executing in Node.js/Next server (Server Components or Route Handlers), target Railway directly
+    url = `${API_BASE_URL}${endpoint}`;
+  }
 
   if (params) {
     const searchParams = new URLSearchParams();
@@ -89,37 +100,30 @@ export async function request<T = any>(
 
     // Handle 401 Unauthorized - attempt token refresh
     if (response.status === 401 && !skipAuthRefresh) {
-      if (isRefreshing) {
-        // Wait for the refresh to complete
-        return new Promise((resolve, reject) => {
-          subscribeTokenRefresh((newToken: string) => {
-            request<T>(endpoint, { ...options, token: newToken })
-              .then(resolve)
-              .catch(reject);
-          });
-        });
+      if (!activeRefreshPromise) {
+        activeRefreshPromise = (async () => {
+          try {
+            // Rotate tokens via our own BFF route — it reads the HttpOnly
+            // refresh cookie server-side, so the real token never touches JS.
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'include',
+            });
+            return refreshResponse.ok;
+          } catch (refreshError) {
+            console.error('[Auth Refresh] Failed to refresh token:', refreshError);
+            return false;
+          } finally {
+            activeRefreshPromise = null;
+          }
+        })();
       }
 
-      isRefreshing = true;
-      try {
-        // Rotate tokens via our own BFF route — it reads the HttpOnly
-        // refresh cookie server-side, so the real token never touches JS.
-        const refreshResponse = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-        });
+      const refreshedSuccessfully = await activeRefreshPromise;
 
-        if (refreshResponse.ok) {
-          // The BFF route has already rotated both cookies. Retry the
-          // original request without an explicit token so the fresh
-          // accessToken cookie is sent instead of the stale bearer token.
-          onTokenRefreshed('');
-          return request<T>(endpoint, { ...options, token: undefined });
-        }
-      } catch (refreshError) {
-        console.error('[Auth Refresh] Failed to refresh token:', refreshError);
-      } finally {
-        isRefreshing = false;
+      if (refreshedSuccessfully) {
+        // Retry the original request without stale bearer token so fresh cookie is sent
+        return request<T>(endpoint, { ...options, token: undefined });
       }
 
       // If refresh failed, redirect to login
