@@ -1,5 +1,6 @@
 import { apiClient } from '../client';
 import type { ApiResponse } from '../types';
+import type { Category } from '@/lib/types/offer';
 
 export interface Offer {
   id: string;
@@ -8,6 +9,8 @@ export interface Offer {
   description: string;
   terms: string;
   categoryId: string;
+  /** Nested category relation included by the offers list endpoint. */
+  category?: Category;
   estimatedSavingsNpr: number;
   originalPriceNpr?: number;
   discountPercentage?: number;

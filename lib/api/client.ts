@@ -18,16 +18,38 @@ interface RequestOptions extends RequestInit {
 }
 
 let isRefreshing = false;
-let activeRefreshPromise: Promise<boolean> | null = null;
-let refreshSubscribers: Array<(token: string) => void> = [];
+let activeRefreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
+let refreshSubscribers: Array<(tokens: { accessToken: string; refreshToken: string }) => void> = [];
 
-function subscribeTokenRefresh(callback: (token: string) => void) {
+function subscribeTokenRefresh(callback: (tokens: { accessToken: string; refreshToken: string }) => void) {
   refreshSubscribers.push(callback);
 }
 
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach(callback => callback(token));
+function onTokenRefreshed(tokens: { accessToken: string; refreshToken: string }) {
+  refreshSubscribers.forEach(callback => callback(tokens));
   refreshSubscribers = [];
+}
+
+function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refreshToken');
+}
+
+function setTokens(accessToken: string, refreshToken: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
+}
+
+function clearTokens() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 }
 
 export async function request<T = any>(
@@ -41,10 +63,8 @@ export async function request<T = any>(
   if (endpoint.startsWith('http')) {
     url = endpoint;
   } else if (isBrowser) {
-    // When executing in browser, use same-origin relative URL so HttpOnly cookies are sent
     url = endpoint;
   } else {
-    // When executing in Node.js/Next server (Server Components or Route Handlers), target Railway directly
     url = `${API_BASE_URL}${endpoint}`;
   }
 
@@ -61,9 +81,12 @@ export async function request<T = any>(
     }
   }
 
+  // Use provided token or get from localStorage
+  const accessToken = token || getAccessToken();
+
   const config: RequestInit = {
     ...customConfig,
-    credentials: 'include', // Send cookies (including accesstoken) with requests
+    credentials: 'include',
     headers: {
       ...headers,
     },
@@ -71,13 +94,12 @@ export async function request<T = any>(
 
   const defaultHeaders: Record<string, string> = {};
 
-  // Don't set Content-Type for FormData - browser will set it with boundary
   if (!(config.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  if (accessToken) {
+    defaultHeaders['Authorization'] = `Bearer ${accessToken}`;
   }
 
   config.headers = {
@@ -99,35 +121,58 @@ export async function request<T = any>(
     const response = await fetch(url, config);
 
     // Handle 401 Unauthorized - attempt token refresh
-    if (response.status === 401 && !skipAuthRefresh) {
+    if (response.status === 401 && !skipAuthRefresh && isBrowser) {
       if (!activeRefreshPromise) {
         activeRefreshPromise = (async () => {
           try {
-            // Rotate tokens via our own BFF route — it reads the HttpOnly
-            // refresh cookie server-side, so the real token never touches JS.
-            const refreshResponse = await fetch('/api/auth/refresh', {
+            const refreshToken = getRefreshToken();
+            if (!refreshToken) {
+              return null;
+            }
+
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
               method: 'POST',
-              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ refreshToken }),
             });
-            return refreshResponse.ok;
+
+            if (!refreshResponse.ok) {
+              clearTokens();
+              return null;
+            }
+
+            const data = await refreshResponse.json();
+            const { tokens } = data;
+            
+            if (tokens && tokens.accessToken && tokens.refreshToken) {
+              setTokens(tokens.accessToken, tokens.refreshToken);
+              return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+            }
+            
+            return null;
           } catch (refreshError) {
             console.error('[Auth Refresh] Failed to refresh token:', refreshError);
-            return false;
+            clearTokens();
+            return null;
           } finally {
             activeRefreshPromise = null;
           }
         })();
       }
 
-      const refreshedSuccessfully = await activeRefreshPromise;
+      const refreshedTokens = await activeRefreshPromise;
 
-      if (refreshedSuccessfully) {
-        // Retry the original request without stale bearer token so fresh cookie is sent
-        return request<T>(endpoint, { ...options, token: undefined });
+      if (refreshedTokens) {
+        onTokenRefreshed(refreshedTokens);
+        // Retry the original request with new token
+        return request<T>(endpoint, { ...options, token: refreshedTokens.accessToken });
       }
 
       // If refresh failed, redirect to login
       if (typeof window !== 'undefined') {
+        clearTokens();
         window.location.href = '/merchant/auth/login';
       }
       throw new ApiError('Session expired. Please log in again.', 401);

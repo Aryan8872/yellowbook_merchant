@@ -5,6 +5,7 @@ import { useMerchantRedemptionsStore } from '@/lib/merchant/stores/redemptions-s
 import { useAuthStore } from '@/lib/auth';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import type { DataTableFeatures } from '@/components/merchant/offer/offerTable/data-table-features';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,8 +17,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Search, Filter } from 'lucide-react';
-import { Redemption } from '@/lib/api/merchant/redemptions-api';
+import { Search, Filter, ScanLine } from 'lucide-react';
+import { Redemption, verifyQrRedemption } from '@/lib/api/merchant/redemptions-api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 // Must mirror the backend RedemptionStatus enum (prisma/schema.prisma)
 const REDEMPTION_STATUS = {
@@ -27,6 +31,15 @@ const REDEMPTION_STATUS = {
   REJECTED: 'REJECTED',
   EXPIRED: 'EXPIRED',
 } as const;
+
+// Human-friendly badge text for each status.
+const REDEMPTION_STATUS_LABELS: Record<string, string> = {
+  INIT: 'Initiated',
+  PENDING_SYNC: 'Pending Sync',
+  REDEEMED: 'Redeemed',
+  REJECTED: 'Rejected',
+  EXPIRED: 'Expired',
+};
 
 export default function RedemptionsPage() {
   const { merchantId } = useAuthStore();
@@ -44,6 +57,35 @@ export default function RedemptionsPage() {
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
+
+  // Verify-redemption dialog state
+  const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+  const [qrPayload, setQrPayload] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerifyQr = async () => {
+    const payload = qrPayload.trim();
+    if (!payload) {
+      toast.error('Scan or paste the customer QR payload first');
+      return;
+    }
+    setVerifying(true);
+    try {
+      const response = await verifyQrRedemption({ qrPayload: payload });
+      if (response.success) {
+        toast.success('Redemption verified successfully');
+        setIsVerifyOpen(false);
+        setQrPayload('');
+        loadData(1);
+      } else {
+        toast.error(response.message || 'Failed to verify redemption');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to verify redemption');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const loadData = useCallback((targetPage: number = 1) => {
     if (merchantId) {
@@ -94,58 +136,58 @@ export default function RedemptionsPage() {
     }
   };
 
-  const columns: any[] = [
+  const columns: ColumnDef<DataTableFeatures, Redemption>[] = [
     {
       accessorKey: 'code',
       header: 'Code',
-      cell: ({ row }: any) => <span className="font-medium">{row.original.code}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
     },
     {
-      accessorKey: 'offer',
+      accessorKey: 'offer.title',
       header: 'Offer',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <div>
-          <p className="font-medium">{row.original.offer.title}</p>
-          <p className="text-sm text-muted-foreground">{row.original.offer.category}</p>
+          <p className="font-medium">{row.original.offer?.title}</p>
+          <p className="text-sm text-muted-foreground">{row.original.offer?.category || 'Uncategorized'}</p>
         </div>
       ),
     },
     {
-      accessorKey: 'user',
+      accessorKey: 'user.name',
       header: 'Customer',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <div>
-          <p className="font-medium">{row.original.user.name}</p>
-          <p className="text-sm text-muted-foreground">{row.original.user.phone}</p>
+          <p className="font-medium">{row.original.user?.name}</p>
+          <p className="text-sm text-muted-foreground">{row.original.user?.phone || row.original.user?.email}</p>
         </div>
       ),
     },
     {
-      accessorKey: 'branch',
+      accessorKey: 'branch.name',
       header: 'Branch',
-      cell: ({ row }: any) => <span>{row.original.branch.name}</span>,
+      cell: ({ row }) => <span>{row.original.branch?.name}</span>,
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <Badge variant={getStatusColor(row.original.status)}>
-          {row.original.status}
+          {REDEMPTION_STATUS_LABELS[row.original.status] || row.original.status}
         </Badge>
       ),
     },
     {
       accessorKey: 'createdAt',
       header: 'Date',
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <span>{new Date(row.original.createdAt).toLocaleDateString()}</span>
       ),
     },
     {
-      accessorKey: 'price',
+      accessorKey: 'offer.originalPriceNpr',
       header: 'Price',
-      cell: ({ row }: any) => (
-        <span className="font-medium">Rs. {row.original.offer.originalPriceNpr}</span>
+      cell: ({ row }) => (
+        <span className="font-medium">Rs. {row.original.offer?.originalPriceNpr}</span>
       ),
     },
   ];
@@ -197,6 +239,13 @@ export default function RedemptionsPage() {
               <Filter className="mr-2 h-4 w-4" />
               Apply Filters
             </Button>
+            <Button
+              onClick={() => setIsVerifyOpen(true)}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              <ScanLine className="mr-2 h-4 w-4" />
+              Verify Redemption
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -213,6 +262,45 @@ export default function RedemptionsPage() {
         showToolbar={false}
         emptyMessage="No redemptions found."
       />
+
+      <Dialog open={isVerifyOpen} onOpenChange={setIsVerifyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Redemption</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="qr-payload">Customer QR Payload</Label>
+            <Input
+              id="qr-payload"
+              placeholder="Paste the scanned QR payload (e.g. offernepal://redeem?code=NF-7821AB)"
+              value={qrPayload}
+              onChange={(e) => setQrPayload(e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Scan the customer's QR with the merchant-staff app, then paste the
+              decoded payload here to complete the redemption. Requires the
+              staff <span className="font-medium">Verify &amp; redeem</span>{' '}
+              permission.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsVerifyOpen(false)}
+              disabled={verifying}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleVerifyQr}
+              disabled={verifying}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              {verifying ? 'Verifying...' : 'Verify'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

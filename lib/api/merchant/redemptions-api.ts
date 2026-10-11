@@ -56,3 +56,32 @@ export async function getRedemptions(
     { params: params as Record<string, string | number | boolean | undefined> }
   );
 }
+
+/**
+ * Staff verifies the customer's scanned QR payload to complete a redemption.
+ * Backend: POST /redemption/merchant/verify-qr — requires the staff `redeem`
+ * permission (enforced server-side). No merchant PIN needed on this path.
+ */
+export async function verifyQrRedemption(data: {
+  qrPayload: string;
+  branchId?: string;
+}): Promise<ApiResponse<Redemption>> {
+  return apiClient.post<Redemption>(
+    `/api/v1/redemption/merchant/verify-qr`,
+    data
+  );
+}
+
+/**
+ * Legacy fallback path: merchant cashier confirms a customer's short code plus
+ * the merchant PIN to complete a redemption.
+ * Backend: POST /merchant/redeem
+ */
+export async function merchantRedeem(data: {
+  code: string;
+  merchantPin: string;
+  staffId?: string;
+  branchId?: string;
+}): Promise<ApiResponse<Redemption>> {
+  return apiClient.post<Redemption>(`/api/v1/merchant/redeem`, data);
+}

@@ -1,13 +1,12 @@
 'use client';
 
-import ActiveDayGraph from "./offer/activeDayGraph/activeDayGraph";
-import OfferTable from "./offer/offerTable/page";
-import ProfitGraph from "./offer/profitGraph/profitGraph";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMerchantAnalyticsStore } from "@/lib/merchant/stores/analytics-store";
 import { useAuthStore } from "@/lib/auth";
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, BarChart3 } from "lucide-react";
+import ProfitGraph from "./offer/profitGraph/profitGraph";
 
 export default function DashboardBody(){
     const { merchantId } = useAuthStore();
@@ -19,10 +18,10 @@ export default function DashboardBody(){
         }
     }, [merchantId, fetchAnalytics]);
 
-    // Transform analytics data to the format expected by ActiveDayGraph
+    // Transform analytics data to the format expected by the bar chart
     const graphData = analytics?.dailyRedemptions?.map((item: any) => ({
-        day: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase(),
-        value: item.count,
+        date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count: item.count,
     })) || [];
 
     return(
@@ -40,41 +39,32 @@ export default function DashboardBody(){
                     </CardContent>
                 </Card>
             </div>
-            
+
             <div>
                 <Card className="border-border/50 hover:shadow-md transition-shadow">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <BarChart3 className="h-5 w-5 text-blue-500" />
-                            Daily Redemptions
+                            Daily Redemptions (Last 7 Days)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
                             <div className="h-64 bg-muted animate-pulse rounded-lg" />
+                        ) : graphData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={graphData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="count" fill="#6366f1" />
+                                </BarChart>
+                            </ResponsiveContainer>
                         ) : (
-                            <ActiveDayGraph data={graphData.length > 0 ? graphData : [{
-                                day:"mon",
-                                value:0,
-                            },{
-                                day:"tue",
-                                value:0,
-                            },{
-                                day:"wed",
-                                value:0,
-                            },{
-                                day:"thu",
-                                value:0,
-                            },{
-                                day:"fri",
-                                value:0,
-                            },{
-                                day:"sat",
-                                value:0,
-                            },{
-                                day:"sun",
-                                value:0,
-                            }]}/>
+                            <div className="h-64 flex items-center justify-center text-muted-foreground">
+                                No data available
+                            </div>
                         )}
                     </CardContent>
                 </Card>

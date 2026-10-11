@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import * as Sentry from "@sentry/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -29,6 +30,14 @@ export class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo)
+
+    // Report to error tracking. When NEXT_PUBLIC_SENTRY_DSN is unset the
+    // Sentry client is a no-op, so this is always safe to call.
+    Sentry.captureException(error, {
+      extra: {
+        componentStack: errorInfo.componentStack,
+      },
+    })
   }
 
   render() {

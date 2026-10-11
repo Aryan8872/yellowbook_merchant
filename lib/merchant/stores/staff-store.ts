@@ -11,13 +11,21 @@ import {
 } from '@/lib/api/merchant/staff-api';
 import { useAuthStore } from '@/lib/auth';
 
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 interface StaffState {
   staff: Staff[];
   loading: boolean;
   error: string | null;
   merchantId: string | null;
+  pagination: PaginationMeta | null;
 
-  fetchStaff: () => Promise<void>;
+  fetchStaff: (params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => Promise<void>;
   createStaff: (data: CreateStaffDto) => Promise<void>;
   updateStaff: (staffId: string, data: UpdateStaffDto) => Promise<void>;
   clearError: () => void;
@@ -30,27 +38,35 @@ export const useMerchantStaffStore = create<StaffState>()(
       loading: false,
       error: null,
       merchantId: null,
+      pagination: null,
 
-      fetchStaff: async () => {
+      fetchStaff: async (params) => {
         set({ loading: true, error: null });
         try {
           const authStore = useAuthStore.getState();
           const merchantId = authStore.merchantId;
           set({ merchantId });
-          
+
           if (!merchantId) {
             set({ error: 'No merchant ID found', loading: false });
             return;
           }
 
-          console.log('[Staff Store] Fetching staff for merchant:', merchantId);
+          console.log('[Staff Store] Fetching staff for merchant:', merchantId, 'with params:', params);
           const response = await getStaff(merchantId);
           console.log('[Staff Store] Raw API response:', response);
-          
+
           if (response.success && response.data) {
             console.log('[Staff Store] Staff data loaded:', response.data);
+            const rows = Array.isArray(response.data) ? response.data : [];
             set({
-              staff: Array.isArray(response.data) ? response.data : [],
+              staff: rows,
+              pagination: {
+                page: 1,
+                limit: rows.length,
+                total: rows.length,
+                totalPages: 1,
+              },
               loading: false,
             });
             toast.success('Staff loaded successfully');

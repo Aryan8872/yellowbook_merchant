@@ -24,7 +24,7 @@ interface BranchStoreState {
   isLoading: boolean
   error: string | null
   pagination: PaginationMeta | null
-  listBranches: (merchantId: string, params?: { page?: number; limit?: number; search?: string }) => Promise<void>
+  listBranches: (merchantId: string, params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) => Promise<void>
   createBranch: (merchantId: string, dto: CreateBranchDto) => Promise<ApiResult<Branch>>
   updateBranch: (merchantId: string, branchId: string, dto: UpdateBranchDto) => Promise<ApiResult<Branch>>
   deleteBranch: (merchantId: string, branchId: string) => Promise<ApiResult<void>>

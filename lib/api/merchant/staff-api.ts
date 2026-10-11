@@ -6,6 +6,7 @@ export interface Staff {
   merchantId: string;
   userId: string;
   role: 'MERCHANT_ADMIN' | 'MERCHANT_STAFF';
+  permissions: string[];
   isActive: boolean;
   deviceId: string | null;
   createdAt: string;
@@ -24,6 +25,7 @@ export interface CreateStaffDto {
   phone?: string;
   role: 'MERCHANT_ADMIN' | 'MERCHANT_STAFF';
   password: string;
+  permissions?: string[];
 }
 
 export interface UpdateStaffDto {
@@ -32,6 +34,7 @@ export interface UpdateStaffDto {
   phone?: string;
   role?: 'MERCHANT_ADMIN' | 'MERCHANT_STAFF';
   isActive?: boolean;
+  permissions?: string[];
 }
 
 export async function getStaff(merchantId: string): Promise<ApiResponse<Staff[]>> {
