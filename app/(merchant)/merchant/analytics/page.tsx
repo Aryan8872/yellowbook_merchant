@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useMerchantAnalyticsStore } from '@/lib/merchant/stores/analytics-store';
 import { useAuthStore } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,18 +44,50 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Track which tabs have been fetched for the current time range
+  const fetchedTabsRef = useRef<Set<string>>(new Set());
+
+  // Reset fetched tabs when time range changes
   useEffect(() => {
-    if (merchantId) {
-      fetchAnalytics(merchantId, { range: timeRange });
-      fetchRevenueAnalytics(merchantId, { range: timeRange });
-      fetchCustomerAnalytics(merchantId, { range: timeRange });
-      fetchOfferPerformanceAnalytics(merchantId, { range: timeRange });
-      fetchBranchPerformanceAnalytics(merchantId, { range: timeRange });
-      fetchTimeBasedAnalytics(merchantId, { range: timeRange });
-      fetchGrowthMetrics(merchantId, { range: timeRange === '90d' ? '90d' : '30d' });
-      fetchCategoryAnalytics(merchantId, { range: timeRange });
+    fetchedTabsRef.current.clear();
+  }, [timeRange]);
+
+  // Lazy-load data only for the active tab (avoids 8 concurrent requests hitting rate limiter)
+  useEffect(() => {
+    if (!merchantId) return;
+    const key = `${activeTab}-${timeRange}`;
+    if (fetchedTabsRef.current.has(key)) return;
+    fetchedTabsRef.current.add(key);
+
+    const params = { range: timeRange };
+
+    switch (activeTab) {
+      case 'overview':
+        fetchAnalytics(merchantId, params);
+        break;
+      case 'revenue':
+        fetchRevenueAnalytics(merchantId, params);
+        break;
+      case 'customers':
+        fetchCustomerAnalytics(merchantId, params);
+        break;
+      case 'offers':
+        fetchOfferPerformanceAnalytics(merchantId, params);
+        break;
+      case 'branches':
+        fetchBranchPerformanceAnalytics(merchantId, params);
+        break;
+      case 'time':
+        fetchTimeBasedAnalytics(merchantId, params);
+        break;
+      case 'growth':
+        fetchGrowthMetrics(merchantId, { range: timeRange === '90d' ? '90d' : '30d' });
+        break;
+      case 'categories':
+        fetchCategoryAnalytics(merchantId, params);
+        break;
     }
-  }, [merchantId, timeRange, fetchAnalytics, fetchRevenueAnalytics, fetchCustomerAnalytics, fetchOfferPerformanceAnalytics, fetchBranchPerformanceAnalytics, fetchTimeBasedAnalytics, fetchGrowthMetrics, fetchCategoryAnalytics]);
+  }, [merchantId, activeTab, timeRange, fetchAnalytics, fetchRevenueAnalytics, fetchCustomerAnalytics, fetchOfferPerformanceAnalytics, fetchBranchPerformanceAnalytics, fetchTimeBasedAnalytics, fetchGrowthMetrics, fetchCategoryAnalytics]);
 
   return (
     <div className="space-y-6">
@@ -442,8 +474,8 @@ export default function Analytics() {
                     <div key={index} className="p-4 bg-muted rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium">{branch.branchName}</p>
-                        <Badge variant={branch.averageRating >= 4 ? 'default' : 'secondary'}>
-                          Rating: {branch.averageRating.toFixed(1)}
+                        <Badge variant="secondary">
+                          {branch.activeOffers} offers
                         </Badge>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
@@ -631,4 +663,4 @@ export default function Analytics() {
       </Tabs>
     </div>
   );
-}
+}

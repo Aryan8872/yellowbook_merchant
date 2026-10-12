@@ -94,7 +94,6 @@ export interface BranchPerformanceAnalytics {
     branchName: string;
     totalRedemptions: number;
     totalRevenue: number;
-    averageRating: number;
     activeOffers: number;
   }>;
   mostActiveBranch: {

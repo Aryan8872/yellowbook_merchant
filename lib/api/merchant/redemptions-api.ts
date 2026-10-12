@@ -9,7 +9,11 @@ export interface Redemption {
   offer: {
     id: string;
     title: string;
-    category: string;
+    category?: string | {
+      id?: string;
+      name?: string;
+      slug?: string;
+    } | null;
     originalPriceNpr: number;
   };
   branch: {

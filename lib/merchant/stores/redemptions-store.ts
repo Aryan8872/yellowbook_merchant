@@ -50,9 +50,16 @@ export const useMerchantRedemptionsStore = create<RedemptionsState>()(
           
           if (response.success && response.data) {
             console.log('[Redemptions Store] Redemptions data loaded:', response.data);
+            const redemptionsList = Array.isArray(response.data)
+              ? response.data
+              : (response.data as any).data || [];
+            const paginationData = Array.isArray(response.data)
+              ? { page: 1, limit: 20, total: response.data.length, totalPages: 1 }
+              : (response.data as any).pagination || { page: 1, limit: 20, total: redemptionsList.length, totalPages: 1 };
+
             set({
-              redemptions: response.data.data || [],
-              pagination: response.data.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 },
+              redemptions: redemptionsList,
+              pagination: paginationData,
               loading: false,
             });
             toast.success('Redemptions loaded successfully');

@@ -148,7 +148,11 @@ export default function RedemptionsPage() {
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.offer?.title}</p>
-          <p className="text-sm text-muted-foreground">{row.original.offer?.category || 'Uncategorized'}</p>
+          <p className="text-sm text-muted-foreground">
+            {typeof row.original.offer?.category === 'object' && row.original.offer?.category !== null
+              ? row.original.offer.category.name || row.original.offer.category.slug || 'Uncategorized'
+              : row.original.offer?.category || 'Uncategorized'}
+          </p>
         </div>
       ),
     },
