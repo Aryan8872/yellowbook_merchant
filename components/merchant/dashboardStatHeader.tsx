@@ -5,17 +5,22 @@ import { useAuthStore } from "@/lib/auth";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Users, Ticket, Building2, Shield, DollarSign } from "lucide-react";
+import { ErrorFallback } from "@/components/ui/error-fallback";
 
 export default function DashboardStatHeader() {
   const { merchantId } = useAuthStore();
-  const { dashboard, revenueAnalytics, loading, fetchDashboard, fetchRevenueAnalytics } =
+  const { dashboard, revenueAnalytics, loading, error, fetchDashboard, fetchRevenueAnalytics } =
     useMerchantAnalyticsStore();
 
-  useEffect(() => {
+  const handleRetry = () => {
     if (merchantId) {
       fetchDashboard(merchantId);
       fetchRevenueAnalytics(merchantId, { range: '30d' });
     }
+  };
+
+  useEffect(() => {
+    handleRetry();
   }, [merchantId, fetchDashboard, fetchRevenueAnalytics]);
 
   const totalRevenue = revenueAnalytics?.totalRevenue || 0;
@@ -62,6 +67,16 @@ export default function DashboardStatHeader() {
       shadow: "shadow-rose-500/10",
     },
   ];
+
+  if (error && !dashboard) {
+    return (
+      <ErrorFallback
+        error={error}
+        title="Failed to load merchant metrics"
+        onRetry={handleRetry}
+      />
+    );
+  }
 
   if (loading && !dashboard) {
     return (

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Users, Building2, Tag, TrendingUp, Plus, Clock, ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { getAdminDashboard } from '@/lib/api/admin/analytics-api';
+import { ErrorFallback } from '@/components/ui/error-fallback';
 
 interface DashboardStats {
   totalMerchants: number;
@@ -17,22 +18,24 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<any>(null);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getAdminDashboard();
+      if (res?.data) {
+        setStats(res.data);
+      }
+    } catch (err: any) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const res = await getAdminDashboard();
-        if (res?.data) {
-          setStats(res.data);
-        }
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load dashboard stats');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStats();
   }, []);
 
@@ -93,10 +96,11 @@ export default function AdminDashboard() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
+        <ErrorFallback
+          error={error}
+          onRetry={fetchStats}
+          compact
+        />
       )}
 
       {/* Live Stats Grid */}

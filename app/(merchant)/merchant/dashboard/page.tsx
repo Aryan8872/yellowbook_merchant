@@ -1,5 +1,6 @@
 import DashboardBody from "@/components/merchant/dashboardBody";
 import DashboardStatHeader from "@/components/merchant/dashboardStatHeader";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function MerchantDashboardPage() {
   return (
@@ -10,8 +11,12 @@ export default function MerchantDashboardPage() {
       </p>
 
       <div className="flex flex-col gap-5">
-        <DashboardStatHeader/>
-        <DashboardBody/>
+        <ErrorBoundary title="Merchant Metrics Error">
+          <DashboardStatHeader />
+        </ErrorBoundary>
+        <ErrorBoundary title="Merchant Dashboard Content Error">
+          <DashboardBody />
+        </ErrorBoundary>
       </div>
     </div>
   );
