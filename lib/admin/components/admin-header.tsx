@@ -38,14 +38,16 @@ export function AdminHeader() {
 
       <div className="flex items-center gap-4">
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'User'} />
-                <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || 'User'} />
+                  <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            }
+          />
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">

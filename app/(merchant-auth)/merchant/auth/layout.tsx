@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrandPanel } from '@/components/merchant/auth/brand-panel';
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function MerchantAuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full grid lg:grid-cols-2 bg-background">
       <BrandPanel />

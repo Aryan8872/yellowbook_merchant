@@ -1,34 +1,69 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building2, Tag, TrendingUp, Plus } from 'lucide-react';
+import { Users, Building2, Tag, TrendingUp, Plus, Clock, ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { getAdminDashboard } from '@/lib/api/admin/analytics-api';
+
+interface DashboardStats {
+  totalMerchants: number;
+  pendingMerchants: number;
+  totalUsers: number;
+  activeOffers: number;
+}
 
 export default function AdminDashboard() {
-  // These stats will be connected to API in Plan 03-03
-  const stats = [
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const res = await getAdminDashboard();
+        if (res?.data) {
+          setStats(res.data);
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load dashboard stats');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const statCards = [
     {
       title: 'Total Users',
-      value: '0',
+      value: stats?.totalUsers ?? '—',
       icon: Users,
       description: 'Registered users',
+      href: '/admin/users',
     },
     {
       title: 'Total Merchants',
-      value: '0',
+      value: stats?.totalMerchants ?? '—',
       icon: Building2,
-      description: 'Active merchants',
+      description: 'All merchants',
+      href: '/admin/merchants',
+    },
+    {
+      title: 'Pending Approval',
+      value: stats?.pendingMerchants ?? '—',
+      icon: Clock,
+      description: 'Awaiting review',
+      href: '/admin/merchants',
     },
     {
       title: 'Active Offers',
-      value: '0',
+      value: stats?.activeOffers ?? '—',
       icon: Tag,
       description: 'Live offers',
-    },
-    {
-      title: 'Total Redemptions',
-      value: '0',
-      icon: TrendingUp,
-      description: 'All time',
+      href: '/admin/analytics',
     },
   ];
 
@@ -42,36 +77,61 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/users/new">
-            <Button>
+          <Link href="/admin/users">
+            <Button variant="outline" size="sm">
+              <Users className="mr-2 h-4 w-4" />
+              Manage Users
+            </Button>
+          </Link>
+          <Link href="/admin/merchants">
+            <Button size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Add User
+              Review Merchants
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Live Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
+        {statCards.map((stat) => (
+          <Link key={stat.title} href={stat.href}>
+            <Card className="hover:border-primary/40 transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.title}
+                </CardTitle>
+                {loading ? (
+                  <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                ) : (
+                  <stat.icon className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <span className="text-muted-foreground text-lg">Loading...</span>
+                  ) : (
+                    stat.value.toLocaleString()
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {stat.description}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions + System Status */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
@@ -96,39 +156,80 @@ export default function AdminDashboard() {
                 View Analytics
               </Button>
             </Link>
+            <Link href="/admin/fraud-flags" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <ShieldAlert className="mr-2 h-4 w-4" />
+                Fraud Flags
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Pending Merchants</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No recent activity to display
-            </p>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </div>
+            ) : stats?.pendingMerchants && stats.pendingMerchants > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  <span className="text-2xl font-bold text-amber-500">{stats.pendingMerchants}</span>{' '}
+                  merchant{stats.pendingMerchants !== 1 ? 's' : ''} awaiting approval.
+                </p>
+                <Link href="/admin/merchants">
+                  <Button size="sm" className="mt-2">
+                    Review Now
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No merchants pending review. ✓
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              System Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span>API Status</span>
-                <span className="text-green-600">Operational</span>
+                <span className="flex items-center gap-1.5 text-green-600">
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  Operational
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span>Database</span>
-                <span className="text-green-600">Connected</span>
+                <span className="flex items-center gap-1.5 text-green-600">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Connected
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span>Cache</span>
-                <span className="text-green-600">Active</span>
+                <span className="flex items-center gap-1.5 text-green-600">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Active
+                </span>
               </div>
             </div>
+            <Link href="/admin/metrics" className="block mt-3">
+              <Button variant="outline" size="sm" className="w-full text-xs">
+                View Live Metrics →
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

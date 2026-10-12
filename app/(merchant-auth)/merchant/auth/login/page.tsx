@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { LoginForm } from '@/components/merchant/auth/login-form';
 import { Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+export default function MerchantLoginPage() {
   return (
     <Suspense
       fallback={

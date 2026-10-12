@@ -85,12 +85,15 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         set({ isLoading: true });
+        const currentUser = get().user;
         try {
           await fetch('/api/auth/logout', { method: 'POST' });
         } finally {
           set({ user: null, merchantId:null, isLoading: false });
           if (typeof window !== 'undefined') {
-            window.location.href = '/merchant/auth/login';
+            // Redirect to role-appropriate login page
+            const isAdmin = currentUser?.role === 'ADMIN';
+            window.location.href = isAdmin ? '/admin/auth/login' : '/merchant/auth/login';
           }
         }
       },

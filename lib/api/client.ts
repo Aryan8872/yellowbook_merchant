@@ -1,4 +1,5 @@
 import { ApiError, ApiResponse } from './types';
+import { getSanitizedError } from '@/lib/utils/error-messages';
 
 export { ApiError };
 export type { ApiResponse };
@@ -60,12 +61,24 @@ export async function request<T = any>(
 
   const isBrowser = typeof window !== 'undefined';
   let url: string;
-  if (endpoint.startsWith('http')) {
-    url = endpoint;
+
+  // Ensure endpoint starts with /api/v1 if not an absolute URL or already prefixed
+  let normalizedEndpoint = endpoint;
+  if (!normalizedEndpoint.startsWith('http')) {
+    if (!normalizedEndpoint.startsWith('/')) {
+      normalizedEndpoint = `/${normalizedEndpoint}`;
+    }
+    if (!normalizedEndpoint.startsWith('/api/v1') && !normalizedEndpoint.startsWith('/api/')) {
+      normalizedEndpoint = `/api/v1${normalizedEndpoint}`;
+    }
+  }
+
+  if (normalizedEndpoint.startsWith('http')) {
+    url = normalizedEndpoint;
   } else if (isBrowser) {
-    url = endpoint;
+    url = normalizedEndpoint;
   } else {
-    url = `${API_BASE_URL}${endpoint}`;
+    url = `${API_BASE_URL}${normalizedEndpoint}`;
   }
 
   if (params) {
@@ -130,7 +143,7 @@ export async function request<T = any>(
               return null;
             }
 
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            const refreshResponse = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -170,10 +183,11 @@ export async function request<T = any>(
         return request<T>(endpoint, { ...options, token: refreshedTokens.accessToken });
       }
 
-      // If refresh failed, redirect to login
+      // If refresh failed, redirect to appropriate login page
       if (typeof window !== 'undefined') {
         clearTokens();
-        window.location.href = '/merchant/auth/login';
+        const isAdminPath = window.location.pathname.startsWith('/admin');
+        window.location.href = isAdminPath ? '/admin/auth/login' : '/merchant/auth/login';
       }
       throw new ApiError('Session expired. Please log in again.', 401);
     }
@@ -191,15 +205,49 @@ export async function request<T = any>(
       }
     }
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data: any;
+    let rawText = '';
+
+    if (contentType.includes('application/json')) {
+      try {
+        data = await response.json();
+      } catch {
+        // Handled below if JSON parse fails
+        data = null;
+      }
+    } else {
+      rawText = await response.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = null;
+      }
+    }
+
+    const headerCorrelationId = response.headers.get('x-correlation-id') || undefined;
+    const payloadCorrelationId = data?.correlationId || headerCorrelationId;
 
     if (!response.ok) {
+      const sanitized = getSanitizedError({
+        statusCode: response.status,
+        errorCode: data?.errorCode,
+        message: data?.message,
+        correlationId: payloadCorrelationId,
+      });
+
       throw new ApiError(
-        data?.message || `HTTP request failed with status ${response.status}`,
+        sanitized.message,
         response.status,
-        data?.errorCode,
-        data
+        data?.errorCode || sanitized.title,
+        data,
+        payloadCorrelationId
       );
+    }
+
+    if (!data && rawText) {
+      // In case 200 returned empty or non-JSON text
+      return rawText as any;
     }
 
     return data;
@@ -217,7 +265,18 @@ export async function request<T = any>(
       throw error;
     }
 
-    throw new ApiError(error?.message || 'Network request failed', 0);
+    const sanitized = getSanitizedError({
+      message: error?.message,
+      statusCode: 0,
+    });
+
+    throw new ApiError(
+      sanitized.message,
+      0,
+      'NETWORK_ERROR',
+      undefined,
+      undefined
+    );
   }
 }
 

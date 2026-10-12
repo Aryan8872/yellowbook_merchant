@@ -11,6 +11,8 @@ import {
   Settings,
   LogOut,
   Menu,
+  ShieldAlert,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,10 +20,12 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuthStore } from '@/lib/auth/auth-store';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Merchants', href: '/admin/merchants', icon: Building2 },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { name: 'Fraud Flags', href: '/admin/fraud-flags', icon: ShieldAlert },
+  { name: 'System Metrics', href: '/admin/metrics', icon: Activity },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
@@ -77,11 +81,13 @@ export function AdminSidebar() {
 
       {/* Mobile Sidebar */}
       <Sheet>
-        <SheetTrigger>
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
+        <SheetTrigger
+          render={
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+          }
+        />
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex flex-col h-full">
             <div className="p-6 border-b">
