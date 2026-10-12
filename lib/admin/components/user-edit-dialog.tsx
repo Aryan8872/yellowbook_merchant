@@ -20,9 +20,10 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserCircle2 } from 'lucide-react';
 import { useUsersStore } from '@/lib/admin/stores/users-store';
 import { User } from '@/lib/api/admin/users-api';
+import { ImageUploadInput } from './image-upload-input';
 
 interface UserEditDialogProps {
   user: User | null;
@@ -69,14 +70,6 @@ export function UserEditDialog({ user, open, onOpenChange }: UserEditDialogProps
         merchantId: formData.role !== 'USER' ? formData.merchantId : undefined,
       });
       onOpenChange(false);
-      setFormData({
-        name: user?.name || '',
-        role: user?.role || 'USER',
-        phone: user?.phone || '',
-        avatarUrl: user?.avatarUrl || '',
-        isActive: user?.isActive ?? true,
-        merchantId: user?.merchantId || '',
-      });
     } catch (error) {
       console.error('Failed to update user:', error);
     } finally {
@@ -100,31 +93,54 @@ export function UserEditDialog({ user, open, onOpenChange }: UserEditDialogProps
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit User</DialogTitle>
-          <DialogDescription>
-            Update user information. Click save when you're done.
-          </DialogDescription>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+              <UserCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information. Click save when you&apos;re done.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
+
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          {/* Avatar Upload (circle shape) */}
+          <div className="flex items-start gap-4">
+            <ImageUploadInput
+              folder="avatars"
+              shape="circle"
+              hint="Avatar image"
+              value={formData.avatarUrl}
+              onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
+              disabled={isSubmitting}
             />
+            <div className="flex-1 space-y-2 pt-1">
+              <Label htmlFor="user-name">Full Name</Label>
+              <Input
+                id="user-name"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Click the circle to upload a profile photo
+              </p>
+            </div>
           </div>
 
+          {/* Role */}
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="user-role">Role</Label>
             <Select
               value={formData.role}
               onValueChange={(value) => value && setFormData({ ...formData, role: value as any })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="user-role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
@@ -136,31 +152,23 @@ export function UserEditDialog({ user, open, onOpenChange }: UserEditDialogProps
             </Select>
           </div>
 
+          {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="user-phone">Phone</Label>
             <Input
-              id="phone"
+              id="user-phone"
               placeholder="+977 9800000000"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="avatarUrl">Avatar URL</Label>
-            <Input
-              id="avatarUrl"
-              placeholder="https://example.com/avatar.jpg"
-              value={formData.avatarUrl}
-              onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-            />
-          </div>
-
+          {/* Merchant ID (only shown for merchant roles) */}
           {(formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && (
             <div className="space-y-2">
-              <Label htmlFor="merchantId">Merchant ID</Label>
+              <Label htmlFor="user-merchantId">Merchant ID</Label>
               <Input
-                id="merchantId"
+                id="user-merchantId"
                 placeholder="merchant-uuid"
                 value={formData.merchantId}
                 onChange={(e) => setFormData({ ...formData, merchantId: e.target.value })}
@@ -168,6 +176,7 @@ export function UserEditDialog({ user, open, onOpenChange }: UserEditDialogProps
             </div>
           )}
 
+          {/* Active Toggle */}
           <div className="flex flex-row items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label className="text-base">Active Status</Label>

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Store } from 'lucide-react';
 import { useMerchantsStore } from '@/lib/admin/stores/merchants-store';
 import { Merchant } from '@/lib/api/admin/merchants-api';
+import { ImageUploadInput } from './image-upload-input';
 
 interface MerchantFormDialogProps {
   merchant?: Merchant | null;
@@ -35,10 +36,12 @@ export function MerchantFormDialog({
     name: '',
     contactEmail: '',
     contactPhone: '',
-    address: '',
-    panNumber: '',
+    registrationNumber: '',
     vatNumber: '',
     logoUrl: '',
+    description: '',
+    websiteUrl: '',
+    coverUrl: '',
   });
 
   useEffect(() => {
@@ -47,20 +50,24 @@ export function MerchantFormDialog({
         name: merchant.name || '',
         contactEmail: merchant.contactEmail || '',
         contactPhone: merchant.contactPhone || '',
-        address: (merchant as any).address || '',
-        panNumber: (merchant as any).panNumber || '',
+        registrationNumber: (merchant as any).registrationNumber || '',
         vatNumber: (merchant as any).vatNumber || '',
         logoUrl: merchant.logoUrl || '',
+        description: (merchant as any).description || '',
+        websiteUrl: (merchant as any).websiteUrl || '',
+        coverUrl: (merchant as any).coverUrl || '',
       });
     } else if (!merchant && open) {
       setFormData({
         name: '',
         contactEmail: '',
         contactPhone: '',
-        address: '',
-        panNumber: '',
+        registrationNumber: '',
         vatNumber: '',
         logoUrl: '',
+        description: '',
+        websiteUrl: '',
+        coverUrl: '',
       });
     }
   }, [merchant, open]);
@@ -76,10 +83,11 @@ export function MerchantFormDialog({
           name: formData.name,
           contactEmail: formData.contactEmail,
           contactPhone: formData.contactPhone || undefined,
-          address: formData.address || undefined,
-          panNumber: formData.panNumber || undefined,
           vatNumber: formData.vatNumber || undefined,
           logoUrl: formData.logoUrl || undefined,
+          description: formData.description || undefined,
+          websiteUrl: formData.websiteUrl || undefined,
+          coverUrl: formData.coverUrl || undefined,
         });
         onOpenChange(false);
       } else {
@@ -87,10 +95,13 @@ export function MerchantFormDialog({
           name: formData.name,
           contactEmail: formData.contactEmail,
           contactPhone: formData.contactPhone || undefined,
-          address: formData.address || undefined,
-          panNumber: formData.panNumber || undefined,
+          registrationNumber: formData.registrationNumber || undefined,
+          panNumber: formData.registrationNumber || undefined,
           vatNumber: formData.vatNumber || undefined,
           logoUrl: formData.logoUrl || undefined,
+          description: formData.description || undefined,
+          websiteUrl: formData.websiteUrl || undefined,
+          coverUrl: formData.coverUrl || undefined,
         });
         if (created) {
           onOpenChange(false);
@@ -105,7 +116,7 @@ export function MerchantFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
@@ -125,6 +136,27 @@ export function MerchantFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* Logo Upload */}
+          <ImageUploadInput
+            label="Business Logo"
+            folder="merchants"
+            hint="PNG, JPG, WEBP up to 5MB — shown in app listings"
+            value={formData.logoUrl}
+            onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+            disabled={isSubmitting}
+          />
+
+          {/* Cover Image Upload */}
+          <ImageUploadInput
+            label="Cover Image"
+            folder="merchants"
+            hint="PNG, JPG, WEBP up to 5MB — shown in merchant detail page"
+            value={formData.coverUrl}
+            onChange={(url) => setFormData({ ...formData, coverUrl: url })}
+            disabled={isSubmitting}
+          />
+
+          {/* Business Name */}
           <div className="space-y-2">
             <Label htmlFor="merchant-name">Business Name *</Label>
             <Input
@@ -136,6 +168,29 @@ export function MerchantFormDialog({
             />
           </div>
 
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="merchant-description">Description</Label>
+            <Input
+              id="merchant-description"
+              placeholder="Brief description of the business"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+
+          {/* Website URL */}
+          <div className="space-y-2">
+            <Label htmlFor="merchant-website">Website URL</Label>
+            <Input
+              id="merchant-website"
+              placeholder="https://example.com"
+              value={formData.websiteUrl}
+              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+            />
+          </div>
+
+          {/* Email + Phone */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="merchant-email">Contact Email *</Label>
@@ -163,27 +218,16 @@ export function MerchantFormDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="merchant-address">Address / Head Office</Label>
-            <Input
-              id="merchant-address"
-              placeholder="Thamel, Kathmandu"
-              value={formData.address}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
-            />
-          </div>
-
+          {/* Registration + VAT */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="merchant-pan">PAN Number</Label>
+              <Label htmlFor="merchant-reg">Registration / PAN Number</Label>
               <Input
-                id="merchant-pan"
-                placeholder="9-digit PAN"
-                value={formData.panNumber}
+                id="merchant-reg"
+                placeholder="e.g. 123456789"
+                value={formData.registrationNumber}
                 onChange={(e) =>
-                  setFormData({ ...formData, panNumber: e.target.value })
+                  setFormData({ ...formData, registrationNumber: e.target.value })
                 }
               />
             </div>
@@ -198,18 +242,6 @@ export function MerchantFormDialog({
                 }
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="merchant-logo">Logo URL</Label>
-            <Input
-              id="merchant-logo"
-              placeholder="https://example.com/logo.png"
-              value={formData.logoUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, logoUrl: e.target.value })
-              }
-            />
           </div>
 
           <DialogFooter className="pt-4">

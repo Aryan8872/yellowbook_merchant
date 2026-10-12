@@ -63,7 +63,7 @@ export default function MerchantDetailsPage() {
       } else if (actionDialog.action === 'suspend') {
         await suspendMerchant({ merchantId, reason: reason || 'Suspended by admin' });
       } else if (actionDialog.action === 'reactivate') {
-        await reactivateMerchant({ merchantId, reason: reason || 'Reactivated by admin' });
+        await reactivateMerchant({ merchantId, notes: reason || undefined });
       }
       setActionDialog({ open: false, action: 'approve' });
       setReason('');

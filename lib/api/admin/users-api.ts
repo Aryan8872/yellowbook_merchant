@@ -22,6 +22,7 @@ export interface CreateUserDto {
   phone?: string;
   role?: 'ADMIN' | 'MERCHANT_ADMIN' | 'MERCHANT_STAFF' | 'USER';
   merchantId?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateUserDto {

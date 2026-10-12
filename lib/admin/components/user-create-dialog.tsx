@@ -21,6 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Loader2, UserPlus } from 'lucide-react';
 import { useUsersStore } from '@/lib/admin/stores/users-store';
+import { ImageUploadInput } from './image-upload-input';
 
 interface UserCreateDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
     role: 'USER',
     phone: '',
     merchantId: '',
+    avatarUrl: '',
   });
 
   const resetForm = () => {
@@ -47,6 +49,7 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
       role: 'USER',
       phone: '',
       merchantId: '',
+      avatarUrl: '',
     });
   };
 
@@ -66,6 +69,7 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
           formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF'
             ? formData.merchantId || undefined
             : undefined,
+        avatarUrl: formData.avatarUrl || undefined,
       });
 
       if (created) {
@@ -81,7 +85,7 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
@@ -97,6 +101,18 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* Avatar Upload */}
+          <div className="flex justify-center">
+            <ImageUploadInput
+              folder="avatars"
+              shape="circle"
+              hint="Profile photo"
+              value={formData.avatarUrl}
+              onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
+              disabled={isSubmitting}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="create-name">Full Name *</Label>
             <Input

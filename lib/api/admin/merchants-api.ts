@@ -23,11 +23,13 @@ export interface UpdateMerchantDto {
   name?: string;
   contactEmail?: string;
   contactPhone?: string;
-  address?: string;
   panNumber?: string;
   vatNumber?: string;
   status?: 'PENDING_REVIEW' | 'ACTIVE' | 'ARCHIVED' | 'SUSPENDED';
   logoUrl?: string;
+  description?: string;
+  websiteUrl?: string;
+  coverUrl?: string;
 }
 
 export interface MerchantsQueryParams {
@@ -68,17 +70,20 @@ export interface SuspendMerchantDto {
 
 export interface ReactivateMerchantDto {
   merchantId: string;
-  reason?: string;
+  notes?: string;
 }
 
 export interface CreateMerchantDto {
   name: string;
   contactEmail: string;
   contactPhone?: string;
+  registrationNumber?: string;
   panNumber?: string;
   vatNumber?: string;
-  address?: string;
   logoUrl?: string;
+  description?: string;
+  websiteUrl?: string;
+  coverUrl?: string;
 }
 
 /**
