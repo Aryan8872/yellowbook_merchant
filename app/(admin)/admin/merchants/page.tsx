@@ -37,9 +37,10 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, MoreHorizontal, Check, X, Ban, Eye } from 'lucide-react';
+import { Search, MoreHorizontal, Check, X, Ban, Eye, Plus, Pencil } from 'lucide-react';
 import CustomSpinner from '@/components/merchant/custom-spinner';
 import { ErrorFallback } from '@/components/ui/error-fallback';
+import { MerchantFormDialog } from '@/lib/admin/components/merchant-form-dialog';
 import { useState } from 'react';
 
 export default function AdminMerchantsPage() {
@@ -53,9 +54,20 @@ export default function AdminMerchantsPage() {
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
 
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   useEffect(() => {
-    fetchMerchants();
-  }, [fetchMerchants]);
+    const timer = setTimeout(() => {
+      fetchMerchants({
+        search: searchQuery.trim() || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, statusFilter, fetchMerchants]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -98,15 +110,30 @@ export default function AdminMerchantsPage() {
             Manage merchant accounts and approvals
           </p>
         </div>
+        <Button
+          onClick={() => {
+            setSelectedMerchant(null);
+            setFormDialogOpen(true);
+          }}
+          className="bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Merchant
+        </Button>
       </div>
 
       {/* Search and Filter */}
       <div className="flex gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search merchants..." className="pl-10" />
+          <Input
+            placeholder="Search merchants by name, email, phone..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        <Select>
+        <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -174,6 +201,15 @@ export default function AdminMerchantsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedMerchant(merchant);
+                              setFormDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit Details
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => router.push(`/admin/merchants/${merchant.id}`)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
@@ -265,6 +301,12 @@ export default function AdminMerchantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MerchantFormDialog
+        merchant={selectedMerchant}
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+      />
     </div>
   );
 }

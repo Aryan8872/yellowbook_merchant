@@ -25,17 +25,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Check, X, Ban, Building2, MapPin, Phone, Mail, Calendar, Package, Users, Activity } from 'lucide-react';
+import { ArrowLeft, Check, X, Ban, Building2, MapPin, Phone, Mail, Calendar, Package, Users, Activity, Pencil } from 'lucide-react';
+import { MerchantFormDialog } from '@/lib/admin/components/merchant-form-dialog';
 
 export default function MerchantDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const merchantId = params.id as string;
-  const { fetchMerchant, approveMerchant, rejectMerchant, suspendMerchant, loading } = useMerchantsStore();
+  const { fetchMerchant, approveMerchant, rejectMerchant, suspendMerchant, reactivateMerchant, loading } = useMerchantsStore();
   const [merchant, setMerchant] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [actionDialog, setActionDialog] = useState<{
     open: boolean;
-    action: 'approve' | 'reject' | 'suspend';
+    action: 'approve' | 'reject' | 'suspend' | 'reactivate';
   }>({ open: false, action: 'approve' });
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -60,6 +62,8 @@ export default function MerchantDetailsPage() {
         await rejectMerchant({ merchantId, reason });
       } else if (actionDialog.action === 'suspend') {
         await suspendMerchant({ merchantId, reason: reason || 'Suspended by admin' });
+      } else if (actionDialog.action === 'reactivate') {
+        await reactivateMerchant({ merchantId, reason: reason || 'Reactivated by admin' });
       }
       setActionDialog({ open: false, action: 'approve' });
       setReason('');
@@ -96,14 +100,23 @@ export default function MerchantDetailsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{merchant.name}</h1>
-          <p className="text-muted-foreground">Merchant details and management</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{merchant.name}</h1>
+            <p className="text-muted-foreground">Merchant details and management</p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          onClick={() => setEditDialogOpen(true)}
+        >
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Merchant
+        </Button>
       </div>
 
       {/* Status and Actions */}
@@ -143,6 +156,15 @@ export default function MerchantDetailsPage() {
               >
                 <Ban className="mr-2 h-4 w-4" />
                 Suspend
+              </Button>
+            )}
+            {(merchant.status === 'SUSPENDED' || merchant.status === 'ARCHIVED') && (
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => setActionDialog({ open: true, action: 'reactivate' })}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Reactivate Merchant
               </Button>
             )}
           </div>
@@ -300,11 +322,13 @@ export default function MerchantDetailsPage() {
               {actionDialog.action === 'approve' && 'Approve Merchant'}
               {actionDialog.action === 'reject' && 'Reject Merchant'}
               {actionDialog.action === 'suspend' && 'Suspend Merchant'}
+              {actionDialog.action === 'reactivate' && 'Reactivate Merchant'}
             </DialogTitle>
             <DialogDescription>
               {actionDialog.action === 'approve' && 'This will activate the merchant account and allow them to manage their offers.'}
               {actionDialog.action === 'reject' && 'This will reject the merchant application. The merchant will need to reapply.'}
               {actionDialog.action === 'suspend' && 'This will suspend the merchant account. They will not be able to manage their offers.'}
+              {actionDialog.action === 'reactivate' && 'This will restore the merchant account to ACTIVE status, enabling merchant portal logins and offer management.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -319,17 +343,16 @@ export default function MerchantDetailsPage() {
                 />
               </div>
             )}
-            {(actionDialog.action === 'reject' || actionDialog.action === 'suspend') && (
+            {(actionDialog.action === 'reject' || actionDialog.action === 'suspend' || actionDialog.action === 'reactivate') && (
               <div className="space-y-2">
                 <Label htmlFor="reason">
-                  {actionDialog.action === 'reject' ? 'Rejection Reason' : 'Suspension Reason'}
+                  {actionDialog.action === 'reject' ? 'Rejection Reason' : actionDialog.action === 'suspend' ? 'Suspension Reason' : 'Reactivation Reason (Optional)'}
                 </Label>
                 <Textarea
                   id="reason"
                   placeholder={`Enter the ${actionDialog.action} reason...`}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  required
                 />
               </div>
             )}
@@ -343,14 +366,27 @@ export default function MerchantDetailsPage() {
             </Button>
             <Button
               onClick={handleAction}
-              disabled={loading || (actionDialog.action !== 'approve' && !reason)}
-              variant={actionDialog.action === 'approve' ? 'default' : 'destructive'}
+              disabled={loading || ((actionDialog.action === 'reject' || actionDialog.action === 'suspend') && !reason)}
+              className={actionDialog.action === 'reactivate' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : undefined}
+              variant={actionDialog.action === 'approve' ? 'default' : actionDialog.action === 'reactivate' ? 'default' : 'destructive'}
             >
-              {loading ? 'Processing...' : actionDialog.action === 'approve' ? 'Approve' : actionDialog.action === 'reject' ? 'Reject' : 'Suspend'}
+              {loading ? 'Processing...' : actionDialog.action === 'approve' ? 'Approve' : actionDialog.action === 'reject' ? 'Reject' : actionDialog.action === 'reactivate' ? 'Reactivate' : 'Suspend'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MerchantFormDialog
+        merchant={merchant}
+        open={editDialogOpen}
+        onOpenChange={async (open) => {
+          setEditDialogOpen(open);
+          if (!open) {
+            const updated = await fetchMerchant(merchantId);
+            if (updated) setMerchant(updated);
+          }
+        }}
+      />
     </div>
   );
 }

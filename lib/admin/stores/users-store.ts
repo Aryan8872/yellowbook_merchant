@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
-import { getUsers, getUser, updateUser, deleteUser, deactivateUser, activateUser, User, UsersQueryParams, UpdateUserDto } from '@/lib/api/admin/users-api';
+import { getUsers, getUser, createUser, updateUser, deleteUser, deactivateUser, activateUser, User, UsersQueryParams, UpdateUserDto, CreateUserDto } from '@/lib/api/admin/users-api';
 
 interface UsersState {
   users: User[];
@@ -15,6 +15,7 @@ interface UsersState {
   
   fetchUsers: (params?: UsersQueryParams) => Promise<void>;
   fetchUser: (id: string) => Promise<User | null>;
+  createUser: (data: CreateUserDto) => Promise<User | null>;
   updateUser: (id: string, data: UpdateUserDto) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   deactivateUser: (userId: string, reason?: string) => Promise<void>;
@@ -155,14 +156,43 @@ export const useUsersStore = create<UsersState>()(
               error: response.message || 'Failed to delete user',
               loading: false,
             });
-            toast.error(response.message || 'Failed to delete user');
-          }
+            }
         } catch (error: any) {
           set({
             error: error.message || 'Failed to delete user',
             loading: false,
           });
           toast.error(error.message || 'Failed to delete user');
+        }
+      },
+
+      createUser: async (data: CreateUserDto) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await createUser(data);
+          if (response.success && response.data) {
+            set((state) => ({
+              users: [response.data!, ...state.users],
+              total: state.total + 1,
+              loading: false,
+            }));
+            toast.success('User created successfully');
+            return response.data;
+          } else {
+            set({
+              error: response.message || 'Failed to create user',
+              loading: false,
+            });
+            toast.error(response.message || 'Failed to create user');
+            return null;
+          }
+        } catch (error: any) {
+          set({
+            error: error.message || 'Failed to create user',
+            loading: false,
+          });
+          toast.error(error.message || 'Failed to create user');
+          return null;
         }
       },
 

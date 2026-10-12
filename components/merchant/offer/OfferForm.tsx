@@ -106,16 +106,23 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
   const [categories, setCategories] = React.useState<Category[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  // Fetch categories on mount
+  // Fetch categories on mount and preset category for new offers
   React.useEffect(() => {
     getCategories().then((response) => {
-      if (response.success && response.data) {
+      if (response.success && response.data && response.data.length > 0) {
         setCategories(response.data)
+        // If creating a new offer and no category has been selected yet, preset with the first active category
+        setForm((prev) => {
+          if (!prev.categoryId && !offer) {
+            return { ...prev, categoryId: response.data![0].id }
+          }
+          return prev
+        })
       }
     })
-  }, [])
+  }, [offer])
 
-  // Populate form when editing
+  // Populate form when editing or resetting
   React.useEffect(() => {
     if (open && offer) {
       setForm({
@@ -134,8 +141,16 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
         validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
         isActive: offer.isActive ?? true,
       })
+    } else if (open && !offer) {
+      // New offer opened: ensure category is preset if categories are already loaded
+      setForm((prev) => {
+        if (!prev.categoryId && categories.length > 0) {
+          return { ...prev, categoryId: categories[0].id }
+        }
+        return prev
+      })
     }
-  }, [open, offer])
+  }, [open, offer, categories])
 
   const setField =
     (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

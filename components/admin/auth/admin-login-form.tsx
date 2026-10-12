@@ -36,7 +36,7 @@ export function AdminLoginForm() {
 
     setIsSubmitting(true);
     try {
-      const result = await login({ email, password });
+      const result = await login({ email, password, portal: 'ADMIN' });
       if (!result.success) {
         setError(result.message || 'Invalid credentials. Please try again.');
         setIsSubmitting(false);

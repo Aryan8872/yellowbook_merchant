@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
-import { getMerchants, getMerchant, updateMerchant, approveMerchant, rejectMerchant, suspendMerchant, Merchant, MerchantsQueryParams, ApproveMerchantDto, RejectMerchantDto, SuspendMerchantDto, UpdateMerchantDto } from '@/lib/api/admin/merchants-api';
+import { getMerchants, getMerchant, createMerchant, updateMerchant, approveMerchant, rejectMerchant, suspendMerchant, reactivateMerchant, Merchant, MerchantsQueryParams, ApproveMerchantDto, RejectMerchantDto, SuspendMerchantDto, ReactivateMerchantDto, CreateMerchantDto, UpdateMerchantDto } from '@/lib/api/admin/merchants-api';
 
 interface MerchantsState {
   merchants: Merchant[];
@@ -15,10 +15,12 @@ interface MerchantsState {
   
   fetchMerchants: (params?: MerchantsQueryParams) => Promise<void>;
   fetchMerchant: (id: string) => Promise<Merchant | null>;
+  createMerchant: (data: CreateMerchantDto) => Promise<Merchant | null>;
   updateMerchant: (id: string, data: UpdateMerchantDto) => Promise<void>;
   approveMerchant: (data: ApproveMerchantDto) => Promise<void>;
   rejectMerchant: (data: RejectMerchantDto) => Promise<void>;
   suspendMerchant: (data: SuspendMerchantDto) => Promise<void>;
+  reactivateMerchant: (data: ReactivateMerchantDto) => Promise<void>;
   setFilters: (filters: MerchantsQueryParams) => void;
   clearError: () => void;
 }
@@ -188,6 +190,62 @@ export const useMerchantsStore = create<MerchantsState>()(
             loading: false,
           });
           toast.error(error.message || 'Failed to reject merchant');
+        }
+      },
+
+      createMerchant: async (data: CreateMerchantDto) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await createMerchant(data);
+          if (response.success && response.data) {
+            set((state) => ({
+              merchants: [response.data!, ...state.merchants],
+              total: state.total + 1,
+              loading: false,
+            }));
+            toast.success('Merchant created successfully');
+            return response.data;
+          } else {
+            set({
+              error: response.message || 'Failed to create merchant',
+              loading: false,
+            });
+            toast.error(response.message || 'Failed to create merchant');
+            return null;
+          }
+        } catch (error: any) {
+          set({
+            error: error.message || 'Failed to create merchant',
+            loading: false,
+          });
+          toast.error(error.message || 'Failed to create merchant');
+          return null;
+        }
+      },
+
+      reactivateMerchant: async (data: ReactivateMerchantDto) => {
+        set({ loading: true, error: null });
+        try {
+          const response = await reactivateMerchant(data);
+          if (response.success && response.data) {
+            set((state) => ({
+              merchants: state.merchants.map((m) => (m.id === data.merchantId ? response.data! : m)),
+              loading: false,
+            }));
+            toast.success('Merchant reactivated successfully');
+          } else {
+            set({
+              error: response.message || 'Failed to reactivate merchant',
+              loading: false,
+            });
+            toast.error(response.message || 'Failed to reactivate merchant');
+          }
+        } catch (error: any) {
+          set({
+            error: error.message || 'Failed to reactivate merchant',
+            loading: false,
+          });
+          toast.error(error.message || 'Failed to reactivate merchant');
         }
       },
 

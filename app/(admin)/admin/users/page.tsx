@@ -2,10 +2,17 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useUsersStore } from '@/lib/admin/stores/users-store';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -14,10 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2 } from 'lucide-react';
+import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2, Search, UserPlus } from 'lucide-react';
 import CustomSpinner from '@/components/merchant/custom-spinner';
 import { ErrorFallback } from '@/components/ui/error-fallback';
 import { UserEditDialog } from '@/lib/admin/components/user-edit-dialog';
+import { UserCreateDialog } from '@/lib/admin/components/user-create-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,11 +41,20 @@ export default function AdminUsersPage() {
   const { users, loading, error, fetchUsers, activateUser, deactivateUser, deleteUser } = useUsersStore();
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const timer = setTimeout(() => {
+      fetchUsers({
+        search: searchQuery.trim() || undefined,
+        role: selectedRole !== 'all' ? selectedRole : undefined,
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedRole, fetchUsers]);
 
   const handleEdit = (user: any) => {
     setSelectedUser(user);
@@ -60,7 +77,42 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Users</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">Manage user accounts and platform permissions</p>
+        </div>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add User
+        </Button>
+      </div>
+
+      {/* Search and Filters Toolbar matching Merchant style */}
+      <div className="flex gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email, phone..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={selectedRole} onValueChange={(val) => val && setSelectedRole(val)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="MERCHANT_ADMIN">Merchant Admin</SelectItem>
+            <SelectItem value="MERCHANT_STAFF">Merchant Staff</SelectItem>
+            <SelectItem value="USER">User / Customer</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading && (
@@ -151,6 +203,11 @@ export default function AdminUsersPage() {
         user={selectedUser}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+
+      <UserCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

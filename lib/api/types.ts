@@ -35,6 +35,7 @@ export class ApiError extends Error {
 export interface LoginDto {
   email: string;
   password: string;
+  portal?: 'ADMIN' | 'MERCHANT' | 'USER';
 }
 
 export interface RegisterDto {

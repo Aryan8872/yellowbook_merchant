@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,13 +34,26 @@ export function UserEditDialog({ user, open, onOpenChange }: UserEditDialogProps
   const { updateUser, loading } = useUsersStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    role: user?.role || 'USER',
-    phone: user?.phone || '',
-    avatarUrl: user?.avatarUrl || '',
-    isActive: user?.isActive ?? true,
-    merchantId: user?.merchantId || '',
+    name: '',
+    role: 'USER',
+    phone: '',
+    avatarUrl: '',
+    isActive: true,
+    merchantId: '',
   });
+
+  useEffect(() => {
+    if (user && open) {
+      setFormData({
+        name: user.name || '',
+        role: user.role || 'USER',
+        phone: user.phone || '',
+        avatarUrl: user.avatarUrl || '',
+        isActive: user.isActive ?? true,
+        merchantId: user.merchantId || '',
+      });
+    }
+  }, [user, open]);
 
   const handleSubmit = async () => {
     if (!user) return;

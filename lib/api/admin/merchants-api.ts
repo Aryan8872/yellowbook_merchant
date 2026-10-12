@@ -66,6 +66,21 @@ export interface SuspendMerchantDto {
   reason?: string;
 }
 
+export interface ReactivateMerchantDto {
+  merchantId: string;
+  reason?: string;
+}
+
+export interface CreateMerchantDto {
+  name: string;
+  contactEmail: string;
+  contactPhone?: string;
+  panNumber?: string;
+  vatNumber?: string;
+  address?: string;
+  logoUrl?: string;
+}
+
 /**
  * Get paginated list of merchants
  */
@@ -84,6 +99,15 @@ export async function getMerchant(
   id: string
 ): Promise<ApiResponse<Merchant>> {
   return apiClient.get<Merchant>(`/admin/merchants/${id}`);
+}
+
+/**
+ * Create merchant
+ */
+export async function createMerchant(
+  data: CreateMerchantDto
+): Promise<ApiResponse<Merchant>> {
+  return apiClient.post<Merchant>('/admin/merchants', data);
 }
 
 /**
@@ -121,4 +145,13 @@ export async function suspendMerchant(
   data: SuspendMerchantDto
 ): Promise<ApiResponse<Merchant>> {
   return apiClient.post<Merchant>('/admin/merchants/suspend', data);
+}
+
+/**
+ * Reactivate merchant
+ */
+export async function reactivateMerchant(
+  data: ReactivateMerchantDto
+): Promise<ApiResponse<Merchant>> {
+  return apiClient.post<Merchant>('/admin/merchants/reactivate', data);
 }

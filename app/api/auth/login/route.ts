@@ -4,7 +4,7 @@ import { apiClient } from '@/lib/api/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, portal } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await apiClient.post('/api/v1/auth/login', { email, password });
+    const response = await apiClient.post('/api/v1/auth/login', { email, password, portal });
 
     if (!response.success || !response.data) {
       return NextResponse.json(

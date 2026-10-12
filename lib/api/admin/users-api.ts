@@ -15,6 +15,15 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface CreateUserDto {
+  email: string;
+  password?: string;
+  name: string;
+  phone?: string;
+  role?: 'ADMIN' | 'MERCHANT_ADMIN' | 'MERCHANT_STAFF' | 'USER';
+  merchantId?: string;
+}
+
 export interface UpdateUserDto {
   name?: string;
   role?: 'ADMIN' | 'MERCHANT_ADMIN' | 'MERCHANT_STAFF' | 'USER';
@@ -62,6 +71,15 @@ export async function getUser(
   id: string
 ): Promise<ApiResponse<User>> {
   return apiClient.get<User>(`/admin/users/${id}`);
+}
+
+/**
+ * Create user
+ */
+export async function createUser(
+  data: CreateUserDto
+): Promise<ApiResponse<User>> {
+  return apiClient.post<User>('/admin/users', data);
 }
 
 /**

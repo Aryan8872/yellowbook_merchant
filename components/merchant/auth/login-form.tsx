@@ -31,7 +31,7 @@ export function LoginForm() {
 
     setIsSubmitting(true);
     try {
-      const result = await login({ email, password });
+      const result = await login({ email, password, portal: 'MERCHANT' });
       if (!result.success) {
         setError(result.message || 'Invalid credentials. Please try again.');
         setIsSubmitting(false);
