@@ -181,9 +181,10 @@ export function MerchantFormDialog({
 
           {/* Website URL */}
           <div className="space-y-2">
-            <Label htmlFor="merchant-website">Website URL</Label>
+            <Label htmlFor="merchant-website">Website URL (Optional)</Label>
             <Input
               id="merchant-website"
+              type="url"
               placeholder="https://example.com"
               value={formData.websiteUrl}
               onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}

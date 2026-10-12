@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { useUsersStore } from '@/lib/admin/stores/users-store';
+import { useMerchantsStore } from '@/lib/admin/stores/merchants-store';
 import { ImageUploadInput } from './image-upload-input';
 
 interface UserCreateDialogProps {
@@ -30,7 +31,9 @@ interface UserCreateDialogProps {
 
 export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) {
   const { createUser, loading } = useUsersStore();
+  const { merchants, fetchMerchants } = useMerchantsStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -40,6 +43,12 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
     merchantId: '',
     avatarUrl: '',
   });
+
+  useEffect(() => {
+    if (open) {
+      fetchMerchants({ page: 1, limit: 100 });
+    }
+  }, [open, fetchMerchants]);
 
   const resetForm = () => {
     setFormData({
@@ -55,20 +64,20 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return;
+    if (!formData.name || !formData.email || !formData.password) return;
+    if ((formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && !formData.merchantId) return;
 
     setIsSubmitting(true);
     try {
+      const merchantIdToSend = (formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && formData.merchantId ? formData.merchantId : undefined;
+      
       const created = await createUser({
         name: formData.name,
         email: formData.email,
-        password: formData.password || undefined,
+        password: formData.password,
         role: formData.role as any,
         phone: formData.phone || undefined,
-        merchantId:
-          formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF'
-            ? formData.merchantId || undefined
-            : undefined,
+        merchantId: merchantIdToSend,
         avatarUrl: formData.avatarUrl || undefined,
       });
 
@@ -137,14 +146,25 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="create-password">Initial Password (Optional)</Label>
-            <Input
-              id="create-password"
-              type="password"
-              placeholder="Leave empty for auto-generated password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
+            <Label htmlFor="create-password">Password *</Label>
+            <div className="relative">
+              <Input
+                id="create-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter password (min 6 characters)"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -181,13 +201,28 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
 
           {(formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && (
             <div className="space-y-2">
-              <Label htmlFor="create-merchantId">Associated Merchant ID</Label>
-              <Input
-                id="create-merchantId"
-                placeholder="Merchant UUID"
-                value={formData.merchantId}
-                onChange={(e) => setFormData({ ...formData, merchantId: e.target.value })}
-              />
+              <Label htmlFor="create-merchantId">Associated Merchant *</Label>
+              <Select
+                value={formData.merchantId || ''}
+                onValueChange={(value) => value && setFormData({ ...formData, merchantId: value })}
+              >
+                <SelectTrigger id="create-merchantId">
+                  <SelectValue placeholder="Select a merchant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {merchants && merchants.length > 0 ? (
+                    merchants.map((merchant: any) => (
+                      <SelectItem key={merchant.id} value={merchant.id}>
+                        {merchant.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      No merchants available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 Affiliates this user with their store branch.
               </p>
@@ -205,7 +240,14 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || loading || !formData.name || !formData.email}
+              disabled={
+                isSubmitting ||
+                loading ||
+                !formData.name ||
+                !formData.email ||
+                !formData.password ||
+                ((formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && !formData.merchantId)
+              }
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {isSubmitting ? (
