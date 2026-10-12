@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldAlert, RefreshCw, Search, Eye } from 'lucide-react';
+import CustomSpinner from '@/components/merchant/custom-spinner';
+import { ErrorFallback } from '@/components/ui/error-fallback';
 import type { FraudFlag, FraudFlagStatus } from '@/lib/api/admin/fraud-flags-api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -102,7 +104,7 @@ export default function AdminFraudFlagsPage() {
               <div className="text-2xl font-bold">
                 {status === 'ALL'
                   ? (pagination?.total ?? '—')
-                  : flags.filter((f) => f.status === status).length}
+                  : (flags || []).filter((f) => f.status === status).length}
               </div>
             </CardContent>
           </Card>
@@ -130,10 +132,12 @@ export default function AdminFraudFlagsPage() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-          {error}
-        </div>
+      {error && !loading && (
+        <ErrorFallback
+          title="Failed to Load Fraud Flags"
+          message={error}
+          onRetry={() => fetchFraudFlags({ page })}
+        />
       )}
 
       {/* Table */}
@@ -152,12 +156,11 @@ export default function AdminFraudFlagsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  Loading fraud flags...
+                <TableCell colSpan={6} className="text-center py-12">
+                  <CustomSpinner />
                 </TableCell>
               </TableRow>
-            ) : flags.length === 0 ? (
+            ) : (flags || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   <ShieldAlert className="h-8 w-8 mx-auto mb-2 opacity-30" />

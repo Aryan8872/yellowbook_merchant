@@ -38,6 +38,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Search, MoreHorizontal, Check, X, Ban, Eye } from 'lucide-react';
+import CustomSpinner from '@/components/merchant/custom-spinner';
+import { ErrorFallback } from '@/components/ui/error-fallback';
 import { useState } from 'react';
 
 export default function AdminMerchantsPage() {
@@ -118,16 +120,22 @@ export default function AdminMerchantsPage() {
         </Select>
       </div>
 
-      {loading && <div className="text-center py-8">Loading merchants...</div>}
-      
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+      {loading && (
+        <div className="py-12">
+          <CustomSpinner />
         </div>
+      )}
+      
+      {error && !loading && (
+        <ErrorFallback
+          title="Failed to Load Merchants"
+          message={error}
+          onRetry={() => fetchMerchants()}
+        />
       )}
 
       {!loading && !error && (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

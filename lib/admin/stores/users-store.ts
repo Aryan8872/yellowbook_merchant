@@ -39,22 +39,44 @@ export const useUsersStore = create<UsersState>()(
         set({ loading: true, error: null });
         try {
           const response = await getUsers({ ...get().filters, ...params });
-          if (response.success && response.data) {
+          console.log('[Users Store] Raw response:', response);
+          if (response && (response.success || response.data)) {
+            // Flexible extraction: response.data can be { data: User[], pagination: {...} } OR User[] directly
+            const rawData = response.data;
+            const usersList = Array.isArray(rawData)
+              ? rawData
+              : Array.isArray((rawData as any)?.data)
+              ? (rawData as any).data
+              : Array.isArray((response as any).users)
+              ? (response as any).users
+              : [];
+
+            const paginationObj =
+              (rawData as any)?.pagination ||
+              (response as any).pagination ||
+              (response as any).meta?.pagination ||
+              null;
+
+            const total = paginationObj?.total ?? usersList.length;
+            const page = paginationObj?.page ?? (params?.page || 1);
+            const limit = paginationObj?.limit ?? (params?.limit || 20);
+            const totalPages = paginationObj?.totalPages ?? Math.ceil(total / (limit || 1));
+
             set({
-              users: response.data.data,
-              total: response.data.pagination.total,
-              page: response.data.pagination.page,
-              limit: response.data.pagination.limit,
-              totalPages: response.data.pagination.totalPages,
+              users: usersList,
+              total,
+              page,
+              limit,
+              totalPages,
               loading: false,
             });
             toast.success('Users loaded successfully');
           } else {
             set({
-              error: response.message || 'Failed to fetch users',
+              error: response?.message || 'Failed to fetch users',
               loading: false,
             });
-            toast.error(response.message || 'Failed to fetch users');
+            toast.error(response?.message || 'Failed to fetch users');
           }
         } catch (error: any) {
           set({

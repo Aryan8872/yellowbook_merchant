@@ -29,30 +29,46 @@ export interface AdminMetricsSummary {
  * Hits the backend directly (not via Next.js API proxy).
  */
 export async function getSystemLiveness(): Promise<SystemLiveness> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/health/liveness`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) {
+  try {
+    const isBrowser = typeof window !== 'undefined';
+    const url = isBrowser ? '/api/v1/health/liveness' : `${API_BASE_URL}/api/v1/health/liveness`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      return { status: 'DOWN', uptime: 0, timestamp: new Date().toISOString() };
+    }
+    const data = await res.json();
+    return data?.data || data;
+  } catch (err) {
+    console.warn('[Metrics] Liveness check error:', err);
     return { status: 'DOWN', uptime: 0, timestamp: new Date().toISOString() };
   }
-  return res.json();
 }
 
 /**
  * Get API readiness (checks Redis etc.) — public endpoint, no auth required.
  */
 export async function getSystemReadiness(): Promise<SystemReadiness> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/health/readiness`, {
-    cache: 'no-store',
-  });
-  if (!res.ok) {
+  try {
+    const isBrowser = typeof window !== 'undefined';
+    const url = isBrowser ? '/api/v1/health/readiness' : `${API_BASE_URL}/api/v1/health/readiness`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      return {
+        status: 'DOWN',
+        checks: { redis: 'UNKNOWN', api: 'DOWN' },
+        timestamp: new Date().toISOString(),
+      };
+    }
+    const data = await res.json();
+    return data?.data || data;
+  } catch (err) {
+    console.warn('[Metrics] Readiness check error:', err);
     return {
       status: 'DOWN',
       checks: { redis: 'UNKNOWN', api: 'DOWN' },
       timestamp: new Date().toISOString(),
     };
   }
-  return res.json();
 }
 
 /**

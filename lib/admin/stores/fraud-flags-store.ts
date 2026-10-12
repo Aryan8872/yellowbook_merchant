@@ -47,14 +47,30 @@ export const useFraudFlagsStore = create<FraudFlagsState>((set, get) => ({
         ...(filter !== 'ALL' ? { status: filter } : {}),
       };
       const res = await getFraudFlags(queryParams);
-      if (res?.data) {
+      console.log('[FraudFlags Store] Raw response:', res);
+      if (res && (res.success || res.data)) {
+        const rawData = res.data;
+        const flagsList = Array.isArray(rawData)
+          ? rawData
+          : Array.isArray((rawData as any)?.data)
+          ? (rawData as any).data
+          : Array.isArray((res as any).fraudFlags)
+          ? (res as any).fraudFlags
+          : [];
+
+        const paginationObj =
+          (rawData as any)?.pagination ||
+          (res as any).pagination ||
+          (res as any).meta?.pagination ||
+          null;
+
         set({
-          flags: res.data.data,
-          pagination: res.data.pagination,
+          flags: flagsList,
+          pagination: paginationObj,
           loading: false,
         });
       } else {
-        set({ loading: false });
+        set({ flags: [], loading: false });
       }
     } catch (err: any) {
       set({

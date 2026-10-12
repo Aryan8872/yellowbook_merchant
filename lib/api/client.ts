@@ -246,9 +246,18 @@ export async function request<T = any>(
     }
 
     if (!data && rawText) {
-      // In case 200 returned empty or non-JSON text
+      console.log(`[apiClient ${method}] ${endpoint} raw text response:`, rawText);
       return rawText as any;
     }
+
+    console.log(`[apiClient ${method}] ${endpoint} parsed response:`, {
+      status: response.status,
+      hasData: Boolean(data),
+      success: data?.success,
+      dataKeys: data ? Object.keys(data) : [],
+      dataPayloadKeys: data?.data && typeof data.data === 'object' ? Object.keys(data.data) : null,
+      pagination: data?.pagination || (data?.data && typeof data.data === 'object' && (data.data as any)?.pagination),
+    });
 
     return data;
   } catch (error: any) {

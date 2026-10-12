@@ -39,22 +39,44 @@ export const useMerchantsStore = create<MerchantsState>()(
         set({ loading: true, error: null });
         try {
           const response = await getMerchants({ ...get().filters, ...params });
-          if (response.success && response.data) {
+          console.log('[Merchants Store] Raw response:', response);
+          if (response && (response.success || response.data)) {
+            // Flexible extraction: response.data can be { data: Merchant[], pagination: {...} } OR Merchant[] directly
+            const rawData = response.data;
+            const merchantsList = Array.isArray(rawData)
+              ? rawData
+              : Array.isArray((rawData as any)?.data)
+              ? (rawData as any).data
+              : Array.isArray((response as any).merchants)
+              ? (response as any).merchants
+              : [];
+
+            const paginationObj =
+              (rawData as any)?.pagination ||
+              (response as any).pagination ||
+              (response as any).meta?.pagination ||
+              null;
+
+            const total = paginationObj?.total ?? merchantsList.length;
+            const page = paginationObj?.page ?? (params?.page || 1);
+            const limit = paginationObj?.limit ?? (params?.limit || 20);
+            const totalPages = paginationObj?.totalPages ?? Math.ceil(total / (limit || 1));
+
             set({
-              merchants: response.data.data,
-              total: response.data.pagination.total,
-              page: response.data.pagination.page,
-              limit: response.data.pagination.limit,
-              totalPages: response.data.pagination.totalPages,
+              merchants: merchantsList,
+              total,
+              page,
+              limit,
+              totalPages,
               loading: false,
             });
             toast.success('Merchants loaded successfully');
           } else {
             set({
-              error: response.message || 'Failed to fetch merchants',
+              error: response?.message || 'Failed to fetch merchants',
               loading: false,
             });
-            toast.error(response.message || 'Failed to fetch merchants');
+            toast.error(response?.message || 'Failed to fetch merchants');
           }
         } catch (error: any) {
           set({
