@@ -1,122 +1,114 @@
 'use client';
 
-import StatCard, { StatCardProps } from "./statcard";
 import { useMerchantAnalyticsStore } from "@/lib/merchant/stores/analytics-store";
 import { useAuthStore } from "@/lib/auth";
 import { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, Ticket, Building2, Shield } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { TrendingUp, Users, Ticket, Building2, Shield, DollarSign } from "lucide-react";
 
-export default function DashboardStatHeader(){
-    const { merchantId } = useAuthStore();
-    const { dashboard, loading, fetchDashboard } = useMerchantAnalyticsStore();
+export default function DashboardStatHeader() {
+  const { merchantId } = useAuthStore();
+  const { dashboard, revenueAnalytics, loading, fetchDashboard, fetchRevenueAnalytics } =
+    useMerchantAnalyticsStore();
 
-    useEffect(() => {
-        if (merchantId) {
-            fetchDashboard(merchantId);
-        }
-    }, [merchantId, fetchDashboard]);
-
-    const statData: StatCardProps[] = [
-        {
-            title: "Total offers",
-            statData: dashboard?.totalOffers || 0,
-        },
-        {
-            title: "Active offers",
-            statData: dashboard?.activeOffers || 0,
-        },
-        {
-            title: "Total redemptions",
-            statData: dashboard?.totalRedemptions || 0,
-        },
-        {
-            title: "Total branches",
-            statData: dashboard?.totalBranches || 0,
-        },
-        {
-            title: "Total staff",
-            statData: dashboard?.totalStaff || 0,
-        }
-    ];
-
-    const statCards = [
-        {
-            title: "Total Offers",
-            value: dashboard?.totalOffers || 0,
-            icon: Ticket,
-            color: "from-blue-500 to-blue-600",
-            bgColor: "bg-blue-500/10",
-            textColor: "text-blue-600",
-        },
-        {
-            title: "Active Offers",
-            value: dashboard?.activeOffers || 0,
-            icon: TrendingUp,
-            color: "from-emerald-500 to-emerald-600",
-            bgColor: "bg-emerald-500/10",
-            textColor: "text-emerald-600",
-        },
-        {
-            title: "Total Redemptions",
-            value: dashboard?.totalRedemptions || 0,
-            icon: Users,
-            color: "from-purple-500 to-purple-600",
-            bgColor: "bg-purple-500/10",
-            textColor: "text-purple-600",
-        },
-        {
-            title: "Total Branches",
-            value: dashboard?.totalBranches || 0,
-            icon: Building2,
-            color: "from-amber-500 to-amber-600",
-            bgColor: "bg-amber-500/10",
-            textColor: "text-amber-600",
-        },
-        {
-            title: "Total Staff",
-            value: dashboard?.totalStaff || 0,
-            icon: Shield,
-            color: "from-rose-500 to-rose-600",
-            bgColor: "bg-rose-500/10",
-            textColor: "text-rose-600",
-        },
-    ];
-
-    if (loading) {
-        return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                    <Card key={i} className="border-border/50">
-                        <CardContent className="p-6">
-                            <div className="h-20 bg-muted animate-pulse rounded-lg" />
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        );
+  useEffect(() => {
+    if (merchantId) {
+      fetchDashboard(merchantId);
+      fetchRevenueAnalytics(merchantId, { range: '30d' });
     }
+  }, [merchantId, fetchDashboard, fetchRevenueAnalytics]);
 
-    return(
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {statCards.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                    <Card key={index} className="border-border/50 hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                                </div>
-                                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shadow-${stat.color.split('-')[1]}-500/20`}>
-                                    <Icon className="h-6 w-6 text-white" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                );
-            })}
-        </div>
+  const totalRevenue = revenueAnalytics?.totalRevenue || 0;
+
+  const statCards = [
+    {
+      title: "Gross Revenue",
+      value: `Rs. ${totalRevenue.toLocaleString()}`,
+      subtext: "Last 30 days",
+      icon: DollarSign,
+      gradient: "from-emerald-500 to-teal-600",
+      shadow: "shadow-emerald-500/10",
+    },
+    {
+      title: "Total Redemptions",
+      value: (dashboard?.totalRedemptions || 0).toLocaleString(),
+      subtext: "All time verified",
+      icon: Users,
+      gradient: "from-blue-500 to-indigo-600",
+      shadow: "shadow-blue-500/10",
+    },
+    {
+      title: "Active Offers",
+      value: `${dashboard?.activeOffers || 0} / ${dashboard?.totalOffers || 0}`,
+      subtext: "Live customer deals",
+      icon: Ticket,
+      gradient: "from-amber-500 to-orange-600",
+      shadow: "shadow-amber-500/10",
+    },
+    {
+      title: "Branches",
+      value: dashboard?.totalBranches || 0,
+      subtext: "Active locations",
+      icon: Building2,
+      gradient: "from-violet-500 to-purple-600",
+      shadow: "shadow-purple-500/10",
+    },
+    {
+      title: "Staff Members",
+      value: dashboard?.totalStaff || 0,
+      subtext: "Registered terminals",
+      icon: Shield,
+      gradient: "from-rose-500 to-pink-600",
+      shadow: "shadow-rose-500/10",
+    },
+  ];
+
+  if (loading && !dashboard) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Card key={i} className="border-border/50">
+            <CardContent className="p-5">
+              <div className="h-16 bg-muted animate-pulse rounded-lg" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {statCards.map((stat, index) => {
+        const Icon = stat.icon;
+        return (
+          <Card
+            key={index}
+            className="border-border/50 bg-card hover:border-border transition-all duration-200 hover:shadow-sm"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground truncate">
+                    {stat.value}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-medium">
+                    {stat.subtext}
+                  </p>
+                </div>
+                <div
+                  className={`h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-white shadow-md ${stat.shadow}`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
 }

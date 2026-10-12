@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import {
   Sidebar,
@@ -12,57 +12,64 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@/components/ui/sidebar"
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { LogOut, PanelLeft, Store } from "lucide-react";
-import { sidebarItems } from "@/lib/constants/sidebar-item";
-import { useAuth } from "@/lib/auth/auth-context";
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { LogOut, PanelLeft, Store } from "lucide-react"
+import { sidebarItems } from "@/lib/constants/sidebar-item"
+import { useAuth } from "@/lib/auth/auth-context"
 
 export function AppSidebar() {
-  const pathname = usePathname();
-  const { toggleSidebar, state } = useSidebar();
-  const { user, logout } = useAuth();
+  const pathname = usePathname()
+  const { toggleSidebar, state } = useSidebar()
+  const { user, logout } = useAuth()
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50 bg-card/50 backdrop-blur-sm">
-      
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-border/50 bg-card/50 backdrop-blur-sm"
+    >
       {/* HEADER */}
-      <SidebarHeader className="flex items-center justify-between px-4 py-4 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center font-bold">
-            <Store className="h-5 w-5" />
+      <SidebarHeader className="border-b border-border/50 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {state === "expanded" && (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 font-bold text-white shadow-md shadow-amber-500/20">
+                <Store className="h-5 w-5" />
+              </div>
+            )}
+
+            {state === "expanded" && (
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm leading-tight font-bold tracking-tight text-foreground">
+                  OfferNepal
+                </span>
+                <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                  Merchant
+                </span>
+              </div>
+            )}
           </div>
 
-          {state === "expanded" && (
-            <div className="flex flex-col">
-              <span className="font-bold text-sm leading-tight text-foreground tracking-tight">
-                OfferNepal
-              </span>
-              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                Merchant Panel
-              </span>
-            </div>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            title={state === "expanded" ? "Collapse sidebar" : "Expand sidebar"}
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </Button>
         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="h-8 w-8 hover:bg-muted"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </Button>
       </SidebarHeader>
 
       {/* CONTENT */}
-      <SidebarContent className="py-4 px-3">
+      <SidebarContent className="px-3 py-4">
         <SidebarMenu>
           {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const Icon = item.icon
+            const isActive = pathname === item.href
 
             return (
               <SidebarMenuItem key={item.href}>
@@ -72,9 +79,9 @@ export function AppSidebar() {
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                        isActive 
-                          ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium shadow-sm" 
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
+                        isActive
+                          ? "bg-amber-500/10 font-medium text-amber-700 shadow-sm dark:text-amber-400"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                     />
@@ -84,25 +91,24 @@ export function AppSidebar() {
                   <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            );
+            )
           })}
         </SidebarMenu>
       </SidebarContent>
 
       {/* FOOTER */}
-      <SidebarFooter className="p-3 border-t border-border/50">
-        <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/50 p-3 hover:bg-muted/80 transition-colors">
-          
+      <SidebarFooter className="border-t border-border/50 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/50 p-3 transition-colors hover:bg-muted/80">
           {state === "expanded" && (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-bold text-white shadow-sm">
                 {(user?.name || "M").charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-foreground text-xs truncate">
+                <p className="truncate text-xs font-semibold text-foreground">
                   {user?.name || "Merchant Venue"}
                 </p>
-                <p className="text-muted-foreground text-[10px] truncate">
+                <p className="truncate text-[10px] text-muted-foreground">
                   {user?.email || "admin@offernepal.com"}
                 </p>
               </div>
@@ -114,13 +120,12 @@ export function AppSidebar() {
             size="icon"
             onClick={() => logout()}
             title="Log out"
-            className="h-8 w-8 hover:text-destructive hover:bg-destructive/10 shrink-0"
+            className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </SidebarFooter>
-
     </Sidebar>
-  );
+  )
 }
