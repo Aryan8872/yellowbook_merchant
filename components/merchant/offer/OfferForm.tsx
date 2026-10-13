@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Plus, Pencil, Upload, X, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -280,7 +281,9 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
         fetchOffers(merchantId)
       }
     } catch (err: any) {
-      setServerError(err?.message || 'Failed to submit offer')
+      const message = err?.response?.data?.message || err?.message || 'Failed to submit offer'
+      toast.error(message)
+      setServerError(message)
     } finally {
       setIsSubmitting(false)
     }

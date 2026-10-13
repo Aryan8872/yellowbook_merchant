@@ -25,11 +25,6 @@ export const createMerchantSchema = z.object({
     .url('Invalid website URL')
     .optional()
     .or(z.literal('')),
-  registrationNumber: z
-    .string()
-    .max(50, 'Registration number must be less than 50 characters')
-    .optional()
-    .or(z.literal('')),
   panNumber: z
     .string()
     .max(50, 'PAN number must be less than 50 characters')

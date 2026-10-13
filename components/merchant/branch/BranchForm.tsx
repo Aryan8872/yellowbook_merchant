@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Plus, Pencil, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -155,32 +156,40 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
 
     setServerError(null)
 
-    if (isEditMode) {
-      const payload: UpdateBranchDto = {
-        name: form.name.trim(),
-        address: form.address.trim(),
-        district: form.district,
-        lat: Number(form.lat),
-        lng: Number(form.lng),
-        phone: form.phone.trim() || '',
-        operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
+    try {
+      if (isEditMode) {
+        const payload: UpdateBranchDto = {
+          name: form.name.trim(),
+          address: form.address.trim(),
+          district: form.district,
+          lat: Number(form.lat),
+          lng: Number(form.lng),
+          phone: form.phone.trim() || '',
+          operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
+        }
+        await updateBranch(effectiveMerchantId || '', branch!.id, payload)
+        toast.success('Branch updated successfully')
+        handleOpenChange(false)
+        onUpdated?.()
+      } else {
+        const payload: CreateBranchDto = {
+          name: form.name.trim(),
+          address: form.address.trim(),
+          district: form.district,
+          lat: Number(form.lat),
+          lng: Number(form.lng),
+          phone: form.phone.trim() || '',
+          operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
+        }
+        await createBranch(effectiveMerchantId || '', payload)
+        toast.success('Branch created successfully')
+        handleOpenChange(false)
+        onCreated?.()
       }
-      await updateBranch(effectiveMerchantId || '', branch!.id, payload)
-      handleOpenChange(false)
-      onUpdated?.()
-    } else {
-      const payload: CreateBranchDto = {
-        name: form.name.trim(),
-        address: form.address.trim(),
-        district: form.district,
-        lat: Number(form.lat),
-        lng: Number(form.lng),
-        phone: form.phone.trim() || '',
-        operatingHours: Object.keys(operatingHours).length > 0 ? operatingHours : getDefaultOperatingHours(),
-      }
-      await createBranch(effectiveMerchantId || '', payload)
-      handleOpenChange(false)
-      onCreated?.()
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to save branch'
+      toast.error(message)
+      setServerError(message)
     }
   }
 

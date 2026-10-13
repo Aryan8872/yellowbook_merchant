@@ -77,7 +77,6 @@ export interface CreateMerchantDto {
   name: string;
   contactEmail: string;
   contactPhone?: string;
-  registrationNumber?: string;
   panNumber?: string;
   vatNumber?: string;
   logoUrl?: string;

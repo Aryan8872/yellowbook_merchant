@@ -42,7 +42,6 @@ export function MerchantFormDialog({
       name: '',
       contactEmail: '',
       contactPhone: '',
-      registrationNumber: '',
       panNumber: '',
       vatNumber: '',
       logoUrl: '',
@@ -60,8 +59,7 @@ export function MerchantFormDialog({
         name: merchant.name || '',
         contactEmail: merchant.contactEmail || '',
         contactPhone: merchant.contactPhone || '',
-        registrationNumber: (merchant as any).registrationNumber || '',
-        panNumber: (merchant as any).registrationNumber || '',
+        panNumber: (merchant as any).panNumber || (merchant as any).registrationNumber || '',
         vatNumber: (merchant as any).vatNumber || '',
         logoUrl: merchant.logoUrl || '',
         description: (merchant as any).description || '',
@@ -211,14 +209,14 @@ export function MerchantFormDialog({
           {/* Registration + VAT */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="merchant-reg">Registration / PAN Number</Label>
+              <Label htmlFor="merchant-reg">PAN Number</Label>
               <Input
                 id="merchant-reg"
                 placeholder="e.g. 123456789"
-                {...form.register('registrationNumber')}
+                {...form.register('panNumber')}
               />
-              {(form.formState.errors as any).registrationNumber && (
-                <p className="text-sm text-destructive">{(form.formState.errors as any).registrationNumber.message}</p>
+              {(form.formState.errors as any).panNumber && (
+                <p className="text-sm text-destructive">{(form.formState.errors as any).panNumber.message}</p>
               )}
             </div>
             <div className="space-y-2">
