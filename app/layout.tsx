@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/sonner";
+import { ReactQueryProvider } from "@/lib/lib/react-query/provider";
 
 const montserratHeading = Montserrat({subsets:['latin'],variable:'--font-heading'});
 
@@ -28,7 +29,9 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning>
         <ErrorBoundary>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ReactQueryProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </ReactQueryProvider>
         </ErrorBoundary>
         <Toaster />
       </body>

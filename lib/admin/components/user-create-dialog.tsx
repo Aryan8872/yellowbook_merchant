@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -20,9 +23,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
-import { useUsersStore } from '@/lib/admin/stores/users-store';
-import { useMerchantsStore } from '@/lib/admin/stores/merchants-store';
+import { useMerchants } from '@/lib/lib/react-query/hooks/use-merchants';
+import { useCreateUser } from '@/lib/lib/react-query/hooks/use-users';
 import { ImageUploadInput } from './image-upload-input';
+import { createUserSchema, type CreateUserInput } from '@/lib/lib/validations/user-validation';
 
 interface UserCreateDialogProps {
   open: boolean;
@@ -30,28 +34,13 @@ interface UserCreateDialogProps {
 }
 
 export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) {
-  const { createUser, loading } = useUsersStore();
-  const { merchants, fetchMerchants } = useMerchantsStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: merchantsData } = useMerchants({ page: 1, limit: 100 });
+  const createUserMutation = useCreateUser();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'USER',
-    phone: '',
-    merchantId: '',
-    avatarUrl: '',
-  });
 
-  useEffect(() => {
-    if (open) {
-      fetchMerchants({ page: 1, limit: 100 });
-    }
-  }, [open, fetchMerchants]);
-
-  const resetForm = () => {
-    setFormData({
+  const form = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
       name: '',
       email: '',
       password: '',
@@ -59,37 +48,35 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
       phone: '',
       merchantId: '',
       avatarUrl: '',
-    });
-  };
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password) return;
-    if ((formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && !formData.merchantId) return;
+  const { watch, reset } = form;
+  const role = watch('role');
 
-    setIsSubmitting(true);
-    try {
-      const merchantIdToSend = (formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && formData.merchantId ? formData.merchantId : undefined;
-      
-      const created = await createUser({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: formData.role as any,
-        phone: formData.phone || undefined,
-        merchantId: merchantIdToSend,
-        avatarUrl: formData.avatarUrl || undefined,
-      });
-
-      if (created) {
-        resetForm();
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('Failed to create user:', error);
-    } finally {
-      setIsSubmitting(false);
+  useEffect(() => {
+    if (open) {
+      reset();
     }
+  }, [open, reset]);
+
+  const onSubmit = async (data: CreateUserInput) => {
+    const merchantIdToSend = (role === 'MERCHANT_ADMIN' || role === 'MERCHANT_STAFF') && data.merchantId ? data.merchantId : undefined;
+    
+    createUserMutation.mutate({
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      role: data.role as any,
+      phone: data.phone || undefined,
+      merchantId: merchantIdToSend,
+      avatarUrl: data.avatarUrl || undefined,
+    }, {
+      onSuccess: () => {
+        reset();
+        onOpenChange(false);
+      },
+    });
   };
 
   return (
@@ -109,16 +96,16 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
           {/* Avatar Upload */}
           <div className="flex justify-center">
             <ImageUploadInput
               folder="avatars"
               shape="circle"
               hint="Profile photo"
-              value={formData.avatarUrl}
-              onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
-              disabled={isSubmitting}
+              value={form.watch('avatarUrl')}
+              onChange={(url) => form.setValue('avatarUrl', url)}
+              disabled={createUserMutation.isPending}
             />
           </div>
 
@@ -127,10 +114,11 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
             <Input
               id="create-name"
               placeholder="e.g. Aarav Sharma"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
+              {...form.register('name')}
             />
+            {form.formState.errors.name && (
+              <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -139,10 +127,11 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
               id="create-email"
               type="email"
               placeholder="user@example.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
+              {...form.register('email')}
             />
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -152,10 +141,7 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
                 id="create-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter password (min 6 characters)"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                minLength={6}
+                {...form.register('password')}
               />
               <button
                 type="button"
@@ -165,16 +151,17 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="create-role">Role</Label>
               <Select
-                value={formData.role}
-                onValueChange={(value) =>
-                  value && setFormData({ ...formData, role: value as any })
-                }
+                value={form.watch('role')}
+                onValueChange={(value) => form.setValue('role', value as any)}
               >
                 <SelectTrigger id="create-role">
                   <SelectValue placeholder="Select role" />
@@ -186,6 +173,9 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
                   <SelectItem value="ADMIN">System Admin</SelectItem>
                 </SelectContent>
               </Select>
+              {form.formState.errors.role && (
+                <p className="text-sm text-destructive">{form.formState.errors.role.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -193,25 +183,27 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
               <Input
                 id="create-phone"
                 placeholder="+977 9800000000"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                {...form.register('phone')}
               />
+              {form.formState.errors.phone && (
+                <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
+              )}
             </div>
           </div>
 
-          {(formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && (
+          {(role === 'MERCHANT_ADMIN' || role === 'MERCHANT_STAFF') && (
             <div className="space-y-2">
               <Label htmlFor="create-merchantId">Associated Merchant *</Label>
               <Select
-                value={formData.merchantId || ''}
-                onValueChange={(value) => value && setFormData({ ...formData, merchantId: value })}
+                value={form.watch('merchantId') || ''}
+                onValueChange={(value) => value && form.setValue('merchantId', value)}
               >
                 <SelectTrigger id="create-merchantId">
                   <SelectValue placeholder="Select a merchant" />
                 </SelectTrigger>
                 <SelectContent>
-                  {merchants && merchants.length > 0 ? (
-                    merchants.map((merchant: any) => (
+                  {merchantsData && Array.isArray(merchantsData) && merchantsData.length > 0 ? (
+                    merchantsData.map((merchant: any) => (
                       <SelectItem key={merchant.id} value={merchant.id}>
                         {merchant.name}
                       </SelectItem>
@@ -223,6 +215,9 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
                   )}
                 </SelectContent>
               </Select>
+              {form.formState.errors.merchantId && (
+                <p className="text-sm text-destructive">{form.formState.errors.merchantId.message}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Affiliates this user with their store branch.
               </p>
@@ -234,23 +229,16 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={createUserMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={
-                isSubmitting ||
-                loading ||
-                !formData.name ||
-                !formData.email ||
-                !formData.password ||
-                ((formData.role === 'MERCHANT_ADMIN' || formData.role === 'MERCHANT_STAFF') && !formData.merchantId)
-              }
+              disabled={createUserMutation.isPending}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              {isSubmitting ? (
+              {createUserMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating...

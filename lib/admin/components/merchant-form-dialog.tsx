@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +15,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2, Store } from 'lucide-react';
-import { useMerchantsStore } from '@/lib/admin/stores/merchants-store';
-import { Merchant } from '@/lib/api/admin/merchants-api';
+import { Loader2, Building2, Store } from 'lucide-react';
+import { useCreateMerchant, useUpdateMerchant } from '@/lib/lib/react-query/hooks/use-merchants';
 import { ImageUploadInput } from './image-upload-input';
+import { createMerchantSchema, updateMerchantSchema, type CreateMerchantInput, type UpdateMerchantInput } from '@/lib/lib/validations/merchant-validation';
+import { Merchant } from '@/lib/api/admin/merchants-api';
 
 interface MerchantFormDialogProps {
   merchant?: Merchant | null;
@@ -28,29 +32,36 @@ export function MerchantFormDialog({
   open,
   onOpenChange,
 }: MerchantFormDialogProps) {
-  const { createMerchant, updateMerchant, loading } = useMerchantsStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createMerchantMutation = useCreateMerchant();
+  const updateMerchantMutation = useUpdateMerchant();
   const isEditing = Boolean(merchant);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    contactEmail: '',
-    contactPhone: '',
-    registrationNumber: '',
-    vatNumber: '',
-    logoUrl: '',
-    description: '',
-    websiteUrl: '',
-    coverUrl: '',
+  const form = useForm<z.infer<typeof createMerchantSchema>>({
+    resolver: zodResolver(createMerchantSchema),
+    defaultValues: {
+      name: '',
+      contactEmail: '',
+      contactPhone: '',
+      registrationNumber: '',
+      panNumber: '',
+      vatNumber: '',
+      logoUrl: '',
+      description: '',
+      websiteUrl: '',
+      coverUrl: '',
+    },
   });
+
+  const { reset } = form;
 
   useEffect(() => {
     if (merchant && open) {
-      setFormData({
+      reset({
         name: merchant.name || '',
         contactEmail: merchant.contactEmail || '',
         contactPhone: merchant.contactPhone || '',
         registrationNumber: (merchant as any).registrationNumber || '',
+        panNumber: (merchant as any).registrationNumber || '',
         vatNumber: (merchant as any).vatNumber || '',
         logoUrl: merchant.logoUrl || '',
         description: (merchant as any).description || '',
@@ -58,59 +69,27 @@ export function MerchantFormDialog({
         coverUrl: (merchant as any).coverUrl || '',
       });
     } else if (!merchant && open) {
-      setFormData({
-        name: '',
-        contactEmail: '',
-        contactPhone: '',
-        registrationNumber: '',
-        vatNumber: '',
-        logoUrl: '',
-        description: '',
-        websiteUrl: '',
-        coverUrl: '',
-      });
+      reset();
     }
-  }, [merchant, open]);
+  }, [merchant, open, reset]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.contactEmail) return;
-
-    setIsSubmitting(true);
-    try {
-      if (isEditing && merchant) {
-        await updateMerchant(merchant.id, {
-          name: formData.name,
-          contactEmail: formData.contactEmail,
-          contactPhone: formData.contactPhone || undefined,
-          vatNumber: formData.vatNumber || undefined,
-          logoUrl: formData.logoUrl || undefined,
-          description: formData.description || undefined,
-          websiteUrl: formData.websiteUrl || undefined,
-          coverUrl: formData.coverUrl || undefined,
-        });
-        onOpenChange(false);
-      } else {
-        const created = await createMerchant({
-          name: formData.name,
-          contactEmail: formData.contactEmail,
-          contactPhone: formData.contactPhone || undefined,
-          registrationNumber: formData.registrationNumber || undefined,
-          panNumber: formData.registrationNumber || undefined,
-          vatNumber: formData.vatNumber || undefined,
-          logoUrl: formData.logoUrl || undefined,
-          description: formData.description || undefined,
-          websiteUrl: formData.websiteUrl || undefined,
-          coverUrl: formData.coverUrl || undefined,
-        });
-        if (created) {
-          onOpenChange(false);
+  const onSubmit = async (data: z.infer<typeof createMerchantSchema>) => {
+    if (isEditing && merchant) {
+      updateMerchantMutation.mutate(
+        { id: merchant.id, data: data as any },
+        {
+          onSuccess: () => {
+            onOpenChange(false);
+          },
         }
-      }
-    } catch (error) {
-      console.error('Failed to save merchant:', error);
-    } finally {
-      setIsSubmitting(false);
+      );
+    } else {
+      createMerchantMutation.mutate(data, {
+        onSuccess: () => {
+          reset();
+          onOpenChange(false);
+        },
+      });
     }
   };
 
@@ -135,26 +114,32 @@ export function MerchantFormDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
           {/* Logo Upload */}
           <ImageUploadInput
             label="Business Logo"
             folder="merchants"
             hint="PNG, JPG, WEBP up to 5MB — shown in app listings"
-            value={formData.logoUrl}
-            onChange={(url) => setFormData({ ...formData, logoUrl: url })}
-            disabled={isSubmitting}
+            value={form.watch('logoUrl')}
+            onChange={(url) => form.setValue('logoUrl', url)}
+            disabled={createMerchantMutation.isPending || updateMerchantMutation.isPending}
           />
+          {form.formState.errors.logoUrl && (
+            <p className="text-sm text-destructive">{form.formState.errors.logoUrl.message}</p>
+          )}
 
           {/* Cover Image Upload */}
           <ImageUploadInput
             label="Cover Image"
             folder="merchants"
             hint="PNG, JPG, WEBP up to 5MB — shown in merchant detail page"
-            value={formData.coverUrl}
-            onChange={(url) => setFormData({ ...formData, coverUrl: url })}
-            disabled={isSubmitting}
+            value={form.watch('coverUrl')}
+            onChange={(url) => form.setValue('coverUrl', url)}
+            disabled={createMerchantMutation.isPending || updateMerchantMutation.isPending}
           />
+          {form.formState.errors.coverUrl && (
+            <p className="text-sm text-destructive">{form.formState.errors.coverUrl.message}</p>
+          )}
 
           {/* Business Name */}
           <div className="space-y-2">
@@ -162,10 +147,11 @@ export function MerchantFormDialog({
             <Input
               id="merchant-name"
               placeholder="e.g. Himalayan Java Coffee"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
+              {...form.register('name')}
             />
+            {form.formState.errors.name && (
+              <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+            )}
           </div>
 
           {/* Description */}
@@ -174,9 +160,11 @@ export function MerchantFormDialog({
             <Input
               id="merchant-description"
               placeholder="Brief description of the business"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              {...form.register('description')}
             />
+            {form.formState.errors.description && (
+              <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
+            )}
           </div>
 
           {/* Website URL */}
@@ -186,9 +174,11 @@ export function MerchantFormDialog({
               id="merchant-website"
               type="url"
               placeholder="https://example.com"
-              value={formData.websiteUrl}
-              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+              {...form.register('websiteUrl')}
             />
+            {form.formState.errors.websiteUrl && (
+              <p className="text-sm text-destructive">{form.formState.errors.websiteUrl.message}</p>
+            )}
           </div>
 
           {/* Email + Phone */}
@@ -199,23 +189,22 @@ export function MerchantFormDialog({
                 id="merchant-email"
                 type="email"
                 placeholder="contact@business.com"
-                value={formData.contactEmail}
-                onChange={(e) =>
-                  setFormData({ ...formData, contactEmail: e.target.value })
-                }
-                required
+                {...form.register('contactEmail')}
               />
+              {form.formState.errors.contactEmail && (
+                <p className="text-sm text-destructive">{form.formState.errors.contactEmail.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="merchant-phone">Contact Phone</Label>
               <Input
                 id="merchant-phone"
                 placeholder="+977 9801234567"
-                value={formData.contactPhone}
-                onChange={(e) =>
-                  setFormData({ ...formData, contactPhone: e.target.value })
-                }
+                {...form.register('contactPhone')}
               />
+              {form.formState.errors.contactPhone && (
+                <p className="text-sm text-destructive">{form.formState.errors.contactPhone.message}</p>
+              )}
             </div>
           </div>
 
@@ -226,22 +215,22 @@ export function MerchantFormDialog({
               <Input
                 id="merchant-reg"
                 placeholder="e.g. 123456789"
-                value={formData.registrationNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, registrationNumber: e.target.value })
-                }
+                {...form.register('registrationNumber')}
               />
+              {(form.formState.errors as any).registrationNumber && (
+                <p className="text-sm text-destructive">{(form.formState.errors as any).registrationNumber.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="merchant-vat">VAT Number</Label>
               <Input
                 id="merchant-vat"
                 placeholder="VAT registration"
-                value={formData.vatNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, vatNumber: e.target.value })
-                }
+                {...form.register('vatNumber')}
               />
+              {(form.formState.errors as any).vatNumber && (
+                <p className="text-sm text-destructive">{(form.formState.errors as any).vatNumber.message}</p>
+              )}
             </div>
           </div>
 
@@ -250,21 +239,16 @@ export function MerchantFormDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={createMerchantMutation.isPending || updateMerchantMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={
-                isSubmitting ||
-                loading ||
-                !formData.name ||
-                !formData.contactEmail
-              }
+              disabled={createMerchantMutation.isPending || updateMerchantMutation.isPending}
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
-              {isSubmitting ? (
+              {createMerchantMutation.isPending || updateMerchantMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
