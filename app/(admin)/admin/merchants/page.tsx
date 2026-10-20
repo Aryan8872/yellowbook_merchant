@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useMerchants, useApproveMerchant, useRejectMerchant, useSuspendMerchant } from '@/lib/admin/hooks/use-merchants-query';
 import { useSubscriptionPlans } from '@/lib/admin/hooks/use-subscriptions-query';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, MoreHorizontal, Check, X, Ban, Eye, Plus, Pencil } from 'lucide-react';
+import { Search, MoreHorizontal, Check, X, Ban, Eye, Plus, Pencil, Copy } from 'lucide-react';
 import CustomSpinner from '@/components/merchant/custom-spinner';
 import { ErrorFallback } from '@/components/ui/error-fallback';
 import { MerchantFormDialog } from '@/lib/admin/components/merchant-form-dialog';
@@ -290,6 +291,15 @@ export default function AdminMerchantsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              navigator.clipboard.writeText(merchant.id);
+                              toast.success('ID copied to clipboard');
+                            }}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy ID
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedMerchant(merchant);

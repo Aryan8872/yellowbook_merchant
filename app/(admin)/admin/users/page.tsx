@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useUsers, useActivateUser, useDeactivateUser, useDeleteUser } from '@/lib/admin/hooks/use-users-query';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -22,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2, Search, UserPlus, Eye } from 'lucide-react';
+import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2, Search, UserPlus, Eye, Copy } from 'lucide-react';
 import CustomSpinner from '@/components/merchant/custom-spinner';
 import { ErrorFallback } from '@/components/ui/error-fallback';
 import { UserEditDialog } from '@/lib/admin/components/user-edit-dialog';
@@ -204,6 +205,15 @@ export default function AdminUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              navigator.clipboard.writeText(user.id);
+                              toast.success('ID copied to clipboard');
+                            }}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy ID
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details

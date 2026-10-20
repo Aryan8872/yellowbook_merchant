@@ -57,6 +57,8 @@ interface Props {
   merchantId: string
   /** When provided, renders in edit mode with pre-filled fields */
   branch?: Branch
+  /** Merchant data for auto-filling form in create mode */
+  merchant?: any
   /** Custom trigger element (e.g. Edit button in a table row) */
   trigger?: React.ReactNode
   /** Controlled open state */
@@ -67,7 +69,7 @@ interface Props {
   onCreated?: () => void
 }
 
-export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, onOpenChange, onUpdated, onCreated }: Props) {
+export function BranchForm({ merchantId, branch, merchant, trigger, open: controlledOpen, onOpenChange, onUpdated, onCreated }: Props) {
   const { merchantId: authMerchantId } = useAuthStore();
   const effectiveMerchantId = merchantId || authMerchantId;
   const createBranchMutation = useCreateBranch(effectiveMerchantId || '')
@@ -117,19 +119,28 @@ export function BranchForm({ merchantId, branch, trigger, open: controlledOpen, 
         name: branch.name,
         address: branch.address,
         district: (branch.district as District) || 'KATHMANDU',
-        lat: String(branch.lat),
-        lng: String(branch.lng),
         phone: branch.phone,
+        lat: branch.lat?.toString() || '',
+        lng: branch.lng?.toString() || '',
       })
       setOperatingHours(branch.operatingHours || getDefaultOperatingHours())
     } else if (!open) {
       reset()
       setOperatingHours({})
     } else if (open && !branch) {
-      // Create mode - initialize with default operating hours
+      // Create mode - initialize with merchant defaults or defaults
+      reset({
+        name: '',
+        address: merchant?.address || merchant?.branches?.[0]?.address || '',
+        district: (merchant?.branches?.[0]?.district as District) || 'KATHMANDU',
+        phone: merchant?.contactPhone || '',
+        lat: '',
+        lng: '',
+        isActive: true,
+      })
       setOperatingHours(getDefaultOperatingHours())
     }
-  }, [open, branch, reset])
+  }, [open, branch, merchant, reset])
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)

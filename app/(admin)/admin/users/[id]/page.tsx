@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useActivateUser, useDeactivateUser } from '@/lib/admin/hooks/use-users-query';
+import { useUser, useActivateUser, useDeactivateUser, useUpdateUser } from '@/lib/admin/hooks/use-users-query';
 import { useSubscriptionPlans, useOverrideSubscription } from '@/lib/admin/hooks/use-subscriptions-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -94,8 +94,19 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const activateUser = useActivateUser();
   const deactivateUser = useDeactivateUser();
   const overrideSubscription = useOverrideSubscription();
+  const updateUser = useUpdateUser();
 
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [deactivateReason, setDeactivateReason] = useState('');
+  const [editForm, setEditForm] = useState({
+    name: '',
+    role: 'USER' as 'USER' | 'MERCHANT_ADMIN' | 'MERCHANT_STAFF' | 'ADMIN',
+    isActive: true,
+    phone: '',
+    avatarUrl: '',
+  });
   const [overrideForm, setOverrideForm] = useState({
     planId: '',
     mode: 'REPLACE' as 'REPLACE' | 'EXTEND' | 'RENEW',
@@ -125,11 +136,49 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     setOverrideDialogOpen(true);
   };
 
+  const openEditDialog = () => {
+    if (!user) return;
+    setEditForm({
+      name: user.name || '',
+      role: user.role,
+      isActive: user.isActive,
+      phone: user.phone || '',
+      avatarUrl: user.avatarUrl || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!user) return;
+    await updateUser.mutateAsync({
+      id: user.id,
+      data: {
+        name: editForm.name,
+        role: editForm.role,
+        isActive: editForm.isActive,
+        phone: editForm.phone,
+        avatarUrl: editForm.avatarUrl,
+      },
+    });
+    setEditDialogOpen(false);
+    refetch();
+  };
+
   const handleActivateToggle = async () => {
     if (!user) return;
-    user.isActive
-      ? await deactivateUser.mutateAsync({ userId: user.id })
-      : await activateUser.mutateAsync({ userId: user.id });
+    if (user.isActive) {
+      setDeactivateDialogOpen(true);
+    } else {
+      await activateUser.mutateAsync({ userId: user.id });
+    }
+  };
+
+  const handleDeactivateSubmit = async () => {
+    if (!user) return;
+    await deactivateUser.mutateAsync({ userId: user.id, reason: deactivateReason });
+    setDeactivateDialogOpen(false);
+    setDeactivateReason('');
+    refetch();
   };
 
   const handleOverrideSubmit = async () => {
@@ -166,6 +215,13 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           <p className="text-muted-foreground text-sm">User Profile &amp; Subscription</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openEditDialog}
+          >
+            Edit Profile
+          </Button>
           <Button
             variant={user.isActive ? 'destructive' : 'default'}
             size="sm"
@@ -509,6 +565,112 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {overrideSubscription.isPending ? 'Saving...' : sub ? 'Update Plan' : 'Assign Plan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Profile Dialog ─────────────────────────────────────────── */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User Profile</DialogTitle>
+            <DialogDescription>Update user information and settings.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(val) => setEditForm((f) => ({ ...f, role: val as any }))}
+              >
+                <SelectTrigger id="edit-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">User</SelectItem>
+                  <SelectItem value="MERCHANT_STAFF">Merchant Staff</SelectItem>
+                  <SelectItem value="MERCHANT_ADMIN">Merchant Admin</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-avatar">Avatar URL</Label>
+              <Input
+                id="edit-avatar"
+                value={editForm.avatarUrl}
+                onChange={(e) => setEditForm((f) => ({ ...f, avatarUrl: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-active"
+                checked={editForm.isActive}
+                onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.checked }))}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="edit-active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={updateUser.isPending}
+            >
+              {updateUser.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Deactivate Dialog ─────────────────────────────────────────── */}
+      <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deactivate User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate this user? They will no longer be able to access the platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="deactivate-reason">Reason <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="deactivate-reason"
+                placeholder="Please provide a reason for deactivation..."
+                rows={3}
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivateDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeactivateSubmit}
+              disabled={!deactivateReason.trim() || deactivateUser.isPending}
+            >
+              {deactivateUser.isPending ? 'Deactivating...' : 'Deactivate User'}
             </Button>
           </DialogFooter>
         </DialogContent>

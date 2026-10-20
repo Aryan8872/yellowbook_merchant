@@ -778,7 +778,8 @@ export default function MerchantDetailsPage() {
 
       {merchant && (
         <BranchForm
-          merchantId={merchant.id}
+          merchantId={merchantId}
+          merchant={merchant}
           branch={editingBranch}
           open={branchDialogOpen}
           onOpenChange={(open) => {
