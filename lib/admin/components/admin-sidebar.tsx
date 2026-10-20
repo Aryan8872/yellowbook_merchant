@@ -13,6 +13,7 @@ import {
   Menu,
   ShieldAlert,
   Activity,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,6 +24,9 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Merchants', href: '/admin/merchants', icon: Building2 },
+  { name: 'Subscriptions', href: '/admin/subscriptions', icon: ShieldAlert },
+  { name: 'Payments', href: '/admin/payments', icon: CreditCard },
+  { name: 'Audit Logs', href: '/admin/audit-logs', icon: Activity },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Fraud Flags', href: '/admin/fraud-flags', icon: ShieldAlert },
   { name: 'System Metrics', href: '/admin/metrics', icon: Activity },

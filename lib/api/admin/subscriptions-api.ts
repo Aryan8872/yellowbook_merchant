@@ -61,3 +61,24 @@ export async function updateTrialConfig(data: any): Promise<ApiResponse<SystemTr
 export async function overrideSubscription(data: any): Promise<ApiResponse<any>> {
   return apiClient.post<any>('/admin/subscriptions/override', data);
 }
+
+/**
+ * Get subscription history for a specific user or merchant
+ */
+export async function getEntitySubscriptions(params: {
+  userId?: string;
+  merchantId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<ApiResponse<{ data: any[]; pagination: any }>> {
+  return apiClient.get<{ data: any[]; pagination: any }>('/admin/subscriptions', {
+    params: params as Record<string, string | number | boolean | undefined>,
+  });
+}
+
+/**
+ * Revoke / cancel an active subscription record
+ */
+export async function revokeSubscription(subscriptionId: string, reason?: string): Promise<ApiResponse<any>> {
+  return apiClient.post<any>(`/admin/subscriptions/${subscriptionId}/revoke`, { reason });
+}

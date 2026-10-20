@@ -3,13 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useProfileStore } from '@/lib/merchant/profile-store';
 import { GeneralProfileTab } from '@/components/merchant/settings/general-profile-tab';
-// import { LegalTaxTab } from '@/components/merchant/settings/legal-tax-tab';
-// import { BankPayoutTab } from '@/components/merchant/settings/bank-payout-tab';
-// import { NotificationsTab } from '@/components/merchant/settings/notifications-tab';
-import { Bell, Building2, FileText, Settings, Store } from 'lucide-react';
+import { BillingPlanTab } from '@/components/merchant/settings/billing-plan-tab';
+import { CreditCard, Settings, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type SettingsTab = 'general' | 'legal' | 'payout' | 'notifications';
+type SettingsTab = 'general' | 'billing' | 'legal' | 'payout' | 'notifications';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -21,9 +19,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', label: 'General Profile', icon: Store },
-    // { id: 'legal', label: 'Legal & Tax', icon: FileText },
-    // { id: 'payout', label: 'Payout & Settlement', icon: Building2 },
-    // { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'billing', label: 'Billing & Plan', icon: CreditCard },
   ];
 
   return (
@@ -35,7 +31,7 @@ export default function SettingsPage() {
           Venue Settings & Configuration
         </h1>
         <p className="text-xs text-muted-foreground">
-          Manage your OfferNepal partner storefront profile
+          Manage your OfferNepal partner storefront profile, billing plans, and branch quotas
         </p>
       </div>
 
@@ -65,10 +61,9 @@ export default function SettingsPage() {
       {/* Tab Panels */}
       <div className="pt-2">
         {activeTab === 'general' && <GeneralProfileTab />}
-        {/* {activeTab === 'legal' && <LegalTaxTab />} */}
-        {/* {activeTab === 'payout' && <BankPayoutTab />} */}
-        {/* {activeTab === 'notifications' && <NotificationsTab />} */}
+        {activeTab === 'billing' && <BillingPlanTab />}
       </div>
     </div>
   );
 }
+

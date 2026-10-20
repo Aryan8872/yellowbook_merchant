@@ -1,0 +1,249 @@
+<testsuites id="" name="" tests="6" failures="4" skipped="0" errors="0" time="15.127835999999999">
+<testsuite name="auth.spec.ts" timestamp="2026-10-15T05:36:41.831Z" hostname="chromium" tests="6" failures="4" skipped="0" time="51.356" errors="0">
+<testcase name="Authentication Flow › should redirect to login page when not authenticated" classname="auth.spec.ts" time="3.026">
+</testcase>
+<testcase name="Authentication Flow › should show validation error for invalid admin credentials" classname="auth.spec.ts" time="3.36">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\video.webm]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\error-context.md]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\trace.zip]]
+]]>
+</system-out>
+<failure message="expect(locator).toBeVisible() failed" type="expect.toBeVisible">
+<![CDATA[  [chromium] › auth.spec.ts:21:3 › Authentication Flow › should show validation error for invalid admin credentials 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: .bg-destructive/10 >> internal:or="text=/invalid|credentials/i"
+    Expected: visible
+    Error: Unexpected token "/" while parsing css selector ".bg-destructive/10". Did you mean to CSS.escape it?
+
+    Call log:
+      - Expect "toBeVisible" .bg-destructive/10 >> internal:or="text=/invalid|credentials/i" with timeout 5000ms
+      - waiting for .bg-destructive/10 >> internal:or="text=/invalid|credentials/i"
+
+
+      27 |     
+      28 |     // Check for error message
+    > 29 |     await expect(page.locator('.bg-destructive\/10').or(page.locator('text=/invalid|credentials/i'))).toBeVisible({ timeout: 5000 });
+         |                                                                                                       ^
+      30 |   });
+      31 |
+      32 |   test('should login successfully with valid admin credentials', async ({ page }) => {
+        at E:\flutter\OfferNepal\merchant_web\offernepal_merchant\e2e\auth.spec.ts:29:103
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ..\test-results\auth-Authentication-Flow-s-da7af-r-invalid-admin-credentials-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login successfully with valid admin credentials" classname="auth.spec.ts" time="13.308">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\video.webm]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\error-context.md]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\trace.zip]]
+]]>
+</system-out>
+<failure message="expect(page).toHaveURL(expected) failed" type="expect.toHaveURL">
+<![CDATA[  [chromium] › auth.spec.ts:32:3 › Authentication Flow › should login successfully with valid admin credentials 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /.*\/admin\/dashboard/
+    Received string:  "http://localhost:3001/admin"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        5 × locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+          - unexpected value "http://localhost:3001/admin/auth/login"
+        - waiting for "http://localhost:3001/admin/dashboard" navigation to finish...
+        - navigated to "http://localhost:3001/admin"
+        - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable">…</html>
+        13 × unexpected value "http://localhost:3001/admin"
+           - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+        - unexpected value "http://localhost:3001/admin"
+
+
+      38 |     
+      39 |     // Should redirect to admin dashboard
+    > 40 |     await expect(page).toHaveURL(/.*\/admin\/dashboard/, { timeout: 10000 });
+         |                        ^
+      41 |     
+      42 |     // Should show dashboard content
+      43 |     await expect(page.locator('text=Dashboard').or(page.locator('h1'))).toBeVisible();
+        at E:\flutter\OfferNepal\merchant_web\offernepal_merchant\e2e\auth.spec.ts:40:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ..\test-results\auth-Authentication-Flow-s-caa9c-ith-valid-admin-credentials-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should login successfully with valid merchant credentials" classname="auth.spec.ts" time="5.025">
+</testcase>
+<testcase name="Authentication Flow › should logout successfully" classname="auth.spec.ts" time="13.359">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|auth-Authentication-Flow-should-logout-successfully-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|auth-Authentication-Flow-should-logout-successfully-chromium\video.webm]]
+
+[[ATTACHMENT|auth-Authentication-Flow-should-logout-successfully-chromium\error-context.md]]
+
+[[ATTACHMENT|auth-Authentication-Flow-should-logout-successfully-chromium\trace.zip]]
+]]>
+</system-out>
+<failure message="expect(page).toHaveURL(expected) failed" type="expect.toHaveURL">
+<![CDATA[  [chromium] › auth.spec.ts:57:3 › Authentication Flow › should logout successfully ────────────────
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /.*\/admin\/dashboard/
+    Received string:  "http://localhost:3001/admin"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        5 × locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+          - unexpected value "http://localhost:3001/admin/auth/login"
+        - waiting for "http://localhost:3001/admin/dashboard" navigation to finish...
+        - navigated to "http://localhost:3001/admin"
+        - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable">…</html>
+        13 × unexpected value "http://localhost:3001/admin"
+           - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+        - unexpected value "http://localhost:3001/admin"
+
+
+      63 |     await page.click('#admin-login-submit');
+      64 |     
+    > 65 |     await expect(page).toHaveURL(/.*\/admin\/dashboard/, { timeout: 10000 });
+         |                        ^
+      66 |     
+      67 |     // Logout - look for user menu or logout button
+      68 |     const logoutButton = page.locator('text=/logout|sign out/i').first();
+        at E:\flutter\OfferNepal\merchant_web\offernepal_merchant\e2e\auth.spec.ts:65:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-should-logout-successfully-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-should-logout-successfully-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\auth-Authentication-Flow-should-logout-successfully-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-should-logout-successfully-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ..\test-results\auth-Authentication-Flow-should-logout-successfully-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+<testcase name="Authentication Flow › should persist session after page refresh" classname="auth.spec.ts" time="13.278">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\video.webm]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\error-context.md]]
+
+[[ATTACHMENT|auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\trace.zip]]
+]]>
+</system-out>
+<failure message="expect(page).toHaveURL(expected) failed" type="expect.toHaveURL">
+<![CDATA[  [chromium] › auth.spec.ts:78:3 › Authentication Flow › should persist session after page refresh ─
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /.*\/admin\/dashboard/
+    Received string:  "http://localhost:3001/admin"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 10000ms
+        5 × locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+          - unexpected value "http://localhost:3001/admin/auth/login"
+        - waiting for "http://localhost:3001/admin/dashboard" navigation to finish...
+        - navigated to "http://localhost:3001/admin"
+        - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable">…</html>
+        13 × unexpected value "http://localhost:3001/admin"
+           - locator resolved to <html lang="en" class="antialiased geist_mono_b4d4e0d7-module__vc6T-a__variable font-sans space_grotesk_a4177b3f-module__DCxVEW__variable montserrat_9943cb3e-module__SopDpq__variable light">…</html>
+        - unexpected value "http://localhost:3001/admin"
+
+
+      83 |     await page.click('#admin-login-submit');
+      84 |     
+    > 85 |     await expect(page).toHaveURL(/.*\/admin\/dashboard/, { timeout: 10000 });
+         |                        ^
+      86 |     
+      87 |     // Refresh page
+      88 |     await page.reload();
+        at E:\flutter\OfferNepal\merchant_web\offernepal_merchant\e2e\auth.spec.ts:85:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ..\test-results\auth-Authentication-Flow-s-3f91d--session-after-page-refresh-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+</testsuite>
+</testsuites>

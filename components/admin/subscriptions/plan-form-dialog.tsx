@@ -142,16 +142,61 @@ export function PlanFormDialog({
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Failed to save subscription tier');
+      // NestJS can return message as string or string[]
+      const raw = err?.response?.data?.message || err?.message || 'Failed to save subscription tier';
+      const message = Array.isArray(raw) ? raw.join(' · ') : String(raw);
+      toast.error(message);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !name.trim()) {
-      toast.error('Plan Code and Name are required');
+
+    // ── Validation ──────────────────────────────────────────────────
+    if (!code.trim()) {
+      toast.error('Plan Code is required');
       return;
     }
+    if (!name.trim()) {
+      toast.error('Display Name is required');
+      return;
+    }
+    if (isNaN(Number(priceNpr)) || Number(priceNpr) < 0) {
+      toast.error('Price must be a valid non-negative number');
+      return;
+    }
+    if (!Number.isInteger(Number(durationDays)) || Number(durationDays) < 1) {
+      toast.error('Cycle Duration must be a positive integer (days)');
+      return;
+    }
+    if (!Number.isInteger(Number(trialDays)) || Number(trialDays) < 0) {
+      toast.error('Trial Days must be a non-negative integer');
+      return;
+    }
+    if (audience === 'MERCHANT') {
+      const mb = Number(maxBranches);
+      const mo = Number(maxActiveOffers);
+      const fb = Number(featuredBoostCount);
+      if (!Number.isInteger(mb) || (mb < 1 && mb !== -1)) {
+        toast.error('Max Outlets must be a positive integer or -1 for unlimited');
+        return;
+      }
+      if (!Number.isInteger(mo) || (mo < 1 && mo !== -1)) {
+        toast.error('Max Live Deals must be a positive integer or -1 for unlimited');
+        return;
+      }
+      if (!Number.isInteger(fb) || fb < 0) {
+        toast.error('Monthly Boosts must be a non-negative integer');
+        return;
+      }
+    } else {
+      const mr = Number(maxRedemptionsPerMonth);
+      if (!Number.isInteger(mr) || (mr < 1 && mr !== -1)) {
+        toast.error('Monthly Voucher Limit must be a positive integer or -1 for unlimited');
+        return;
+      }
+    }
+
     saveMutation.mutate();
   };
 
@@ -291,45 +336,72 @@ export function PlanFormDialog({
               </span>
 
               {audience === 'MERCHANT' ? (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Max Outlets (-1 = ∞)</Label>
-                    <Input
-                      type="number"
-                      value={maxBranches}
-                      onChange={(e) => setMaxBranches(Number(e.target.value))}
-                      className="text-xs"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Max Outlets (-1 = ∞)</Label>
+                      <Input
+                        type="number"
+                        value={maxBranches}
+                        onChange={(e) => setMaxBranches(Number(e.target.value))}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Max Live Deals (-1 = ∞)</Label>
+                      <Input
+                        type="number"
+                        value={maxActiveOffers}
+                        onChange={(e) => setMaxActiveOffers(Number(e.target.value))}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Monthly Boosts</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={featuredBoostCount}
+                        onChange={(e) => setFeaturedBoostCount(Number(e.target.value))}
+                        className="text-xs"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Max Live Deals (-1 = ∞)</Label>
-                    <Input
-                      type="number"
-                      value={maxActiveOffers}
-                      onChange={(e) => setMaxActiveOffers(Number(e.target.value))}
-                      className="text-xs"
+                  {/* POS Integration toggle */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Switch
+                      id="posIntegration"
+                      checked={posIntegration}
+                      onCheckedChange={setPosIntegration}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px]">Monthly Boosts</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={featuredBoostCount}
-                      onChange={(e) => setFeaturedBoostCount(Number(e.target.value))}
-                      className="text-xs"
-                    />
+                    <Label htmlFor="posIntegration" className="text-[11px] font-normal">
+                      POS / Scanner Integration
+                    </Label>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Monthly Voucher Limit (-1 = Unlimited)</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[11px]">Monthly Voucher Limit (-1 = Unlimited)</Label>
+                    <button
+                      type="button"
+                      onClick={() => setMaxRedemptionsPerMonth(-1)}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      Set Unlimited
+                    </button>
+                  </div>
                   <Input
                     type="number"
                     value={maxRedemptionsPerMonth}
                     onChange={(e) => setMaxRedemptionsPerMonth(Number(e.target.value))}
                     className="text-xs"
                   />
+                  {maxRedemptionsPerMonth === -1 && (
+                    <p className="text-[10px] text-indigo-600 dark:text-indigo-400">
+                      ∞ Unlimited redemptions per month
+                    </p>
+                  )}
                 </div>
               )}
             </div>

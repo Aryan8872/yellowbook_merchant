@@ -37,8 +37,32 @@ export interface UpdateStaffDto {
   permissions?: string[];
 }
 
-export async function getStaff(merchantId: string): Promise<ApiResponse<Staff[]>> {
-  return apiClient.get<Staff[]>(`/api/v1/merchants/${merchantId}/staff`);
+export interface StaffQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+}
+
+export interface StaffListResponse {
+  data: Staff[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext?: boolean;
+    hasPrevious?: boolean;
+  };
+}
+
+export async function getStaff(
+  merchantId: string,
+  params?: StaffQueryParams
+): Promise<ApiResponse<StaffListResponse | Staff[]>> {
+  return apiClient.get<StaffListResponse | Staff[]>(`/api/v1/merchants/${merchantId}/staff`, {
+    params: params as Record<string, string | number | boolean | undefined>,
+  });
 }
 
 export async function createStaff(

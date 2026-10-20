@@ -1,6 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Plus, Pencil, Upload, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -26,54 +29,47 @@ import {
 } from '@/components/ui/select'
 import { Offer } from '@/lib/types/offer'
 import { useAuthStore } from '@/lib/auth'
-import { useMerchantOffersStore } from '@/lib/merchant/stores/offers-store'
-import { getCategories, Category } from '@/lib/api/categories-api'
-import { uploadOfferCoverImage, uploadOfferGalleryImage, createOffer as apiCreateOffer, updateOffer as apiUpdateOffer } from '@/lib/api/merchant/offers-api'
+import { useCreateOffer, useUpdateOffer } from '@/lib/merchant/hooks/use-offers-query'
+import { Category } from '@/lib/api/categories-api'
+import { useCategories } from '@/lib/merchant/hooks/use-categories-query'
+import { uploadOfferCoverImage, uploadOfferGalleryImage } from '@/lib/api/merchant/offers-api'
+import { showFormErrors } from '@/lib/utils/form-toast'
+import { cleanPayload } from '@/lib/utils/payload-cleanup'
 
-type FormState = {
-  title: string
-  description: string
-  terms: string
-  categoryId: string | null
-  originalPriceNpr: string
-  discountPercentage: string
-  coverImage: string
-  coverImageFile: File | null
-  images: string[]
-  imageFiles: File[]
-  highlights: string
-  validFrom: string
-  validUntil: string
-  isActive: boolean
-}
+const offerSchema = z.object({
+  title: z.string().min(1, 'Enter an offer title'),
+  description: z.string().min(1, 'Enter a description'),
+  terms: z.string().optional(),
+  categoryId: z.string().min(1, 'Select a category'),
+  originalPriceNpr: z.string().min(1, 'Enter original price'),
+  discountPercentage: z.string().optional(),
+  coverImage: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  highlights: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true
+        const lines = val.split('\n').map((h) => h.trim()).filter(Boolean)
+        return lines.length <= 5
+      },
+      { message: 'Maximum 5 highlights allowed (one per line)' }
+    )
+    .refine(
+      (val) => {
+        if (!val) return true
+        const lines = val.split('\n').map((h) => h.trim()).filter(Boolean)
+        return lines.every((line) => line.length <= 50)
+      },
+      { message: 'Each highlight must be 50 characters or less' }
+    ),
+  validFrom: z.string().optional(),
+  validUntil: z.string().optional(),
+  isActive: z.boolean(),
+})
 
-const EMPTY: FormState = {
-  title: '',
-  description: '',
-  terms: '',
-  categoryId: null,
-  originalPriceNpr: '',
-  discountPercentage: '',
-  coverImage: '',
-  coverImageFile: null,
-  images: [],
-  imageFiles: [],
-  highlights: '',
-  validFrom: '',
-  validUntil: '',
-  isActive: true,
-}
-
-type Errors = Partial<Record<keyof FormState, string>>
-
-function validate(f: FormState): Errors {
-  const e: Errors = {}
-  if (!f.title.trim()) e.title = 'Enter an offer title'
-  if (!f.description.trim()) e.description = 'Enter a description'
-  if (!f.originalPriceNpr.trim()) e.originalPriceNpr = 'Enter original price'
-  if (!f.categoryId) e.categoryId = 'Select a category'
-  return e
-}
+type OfferFormData = z.infer<typeof offerSchema>
 
 interface Props {
   /** When provided, renders in edit mode with pre-filled fields */
@@ -90,6 +86,9 @@ interface Props {
 
 export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenChange, onCreated, onUpdated }: Props) {
   const isEditMode = !!offer
+  const { merchantId } = useAuthStore()
+  const createOfferMutation = useCreateOffer(merchantId || '')
+  const updateOfferMutation = useUpdateOffer(merchantId || '')
 
   const [internalOpen, setInternalOpen] = React.useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -101,191 +100,177 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
     }
   }
 
-  const [form, setForm] = React.useState<FormState>(EMPTY)
-  const [errors, setErrors] = React.useState<Errors>({})
-  const [serverError, setServerError] = React.useState<string | null>(null)
-  const [categories, setCategories] = React.useState<Category[]>([])
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const { data: categoriesData } = useCategories()
+  const categories = categoriesData || []
+  const [coverImageFile, setCoverImageFile] = React.useState<File | null>(null)
+  const [imageFiles, setImageFiles] = React.useState<File[]>([])
 
-  // Fetch categories on mount and preset category for new offers
-  React.useEffect(() => {
-    getCategories().then((response) => {
-      if (response.success && response.data && response.data.length > 0) {
-        setCategories(response.data)
-        // If creating a new offer and no category has been selected yet, preset with the first active category
-        setForm((prev) => {
-          if (!prev.categoryId && !offer) {
-            return { ...prev, categoryId: response.data![0].id }
-          }
-          return prev
-        })
-      }
-    })
-  }, [offer])
+  const form = useForm<OfferFormData>({
+    resolver: zodResolver(offerSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      terms: '',
+      categoryId: '',
+      originalPriceNpr: '',
+      discountPercentage: '',
+      coverImage: '',
+      images: [],
+      highlights: '',
+      validFrom: '',
+      validUntil: '',
+      isActive: true,
+    },
+  })
+
+  const { reset, register, watch, setValue, formState: { errors } } = form
 
   // Populate form when editing or resetting
   React.useEffect(() => {
     if (open && offer) {
-      setForm({
+      reset({
         title: offer.title,
         description: offer.description,
         terms: offer.terms || '',
-        categoryId: offer.categoryId || '',
+        categoryId: offer.categoryId || (categories.length > 0 ? categories[0].id : ''),
         originalPriceNpr: String(offer.originalPriceNpr || ''),
         discountPercentage: String(offer.discountPercentage || ''),
         coverImage: (offer as any).coverImage || '',
-        coverImageFile: null,
         images: (offer as any).images || [],
-        imageFiles: [],
         highlights: (offer.highlights || []).join('\n'),
         validFrom: offer.validFrom ? new Date(offer.validFrom).toISOString().split('T')[0] : '',
         validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
         isActive: offer.isActive ?? true,
       })
     } else if (open && !offer) {
-      // New offer opened: ensure category is preset if categories are already loaded
-      setForm((prev) => {
-        if (!prev.categoryId && categories.length > 0) {
-          return { ...prev, categoryId: categories[0].id }
-        }
-        return prev
+      // New offer opened: preset with first category if not already set
+      reset({
+        title: '',
+        description: '',
+        terms: '',
+        categoryId: categories.length > 0 ? categories[0].id : '',
+        originalPriceNpr: '',
+        discountPercentage: '',
+        coverImage: '',
+        images: [],
+        highlights: '',
+        validFrom: '',
+        validUntil: '',
+        isActive: true,
       })
     }
-  }, [open, offer, categories])
-
-  const setField =
-    (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-      setErrors((prev) => ({ ...prev, [key]: undefined }))
-    }
+  }, [open, offer, categories.length, reset])
 
   function handleOpenChange(next: boolean) {
-    if (isSubmitting) return
+    if (createOfferMutation.isPending || updateOfferMutation.isPending) return
     setOpen(next)
     if (!next) {
-      setForm(EMPTY)
-      setErrors({})
-      setServerError(null)
+      reset()
+      setCoverImageFile(null)
+      setImageFiles([])
     }
   }
 
-  const { merchantId } = useAuthStore()
-  const { fetchOffers } = useMerchantOffersStore()
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setServerError(null)
-
-    const found = validate(form)
-    if (Object.keys(found).length > 0) {
-      setErrors(found)
-      return
-    }
-
+  const onSubmit = async (data: OfferFormData) => {
     if (!merchantId) {
-      setServerError('No merchant ID found')
+      toast.error('No merchant ID found')
       return
     }
 
-    setIsSubmitting(true)
+    const payload: any = {
+      title: data.title.trim(),
+      description: data.description.trim(),
+      terms: data.terms?.trim() || undefined,
+      categoryId: data.categoryId,
+      estimatedSavingsNpr: 0, // Default value since field was removed from form
+      originalPriceNpr: Number(data.originalPriceNpr),
+      discountPercentage: Number(data.discountPercentage) || undefined,
+      coverImage: data.coverImage?.trim() || undefined,
+      images: data.images || [],
+      highlights: data.highlights ? data.highlights.split('\n').map(h => h.trim()).filter(Boolean) : [],
+      validFrom: data.validFrom ? new Date(data.validFrom).toISOString() : undefined,
+      validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : undefined,
+      isActive: data.isActive,
+    }
 
     try {
-      const payload: any = {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        terms: form.terms.trim() || undefined,
-        categoryId: form.categoryId,
-        originalPriceNpr: Number(form.originalPriceNpr),
-        discountPercentage: Number(form.discountPercentage) || undefined,
-        coverImage: form.coverImage.trim() || undefined,
-        images: form.images,
-        highlights: form.highlights.split('\n').map(h => h.trim()).filter(Boolean),
-        validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : undefined,
-        validUntil: form.validUntil ? new Date(form.validUntil).toISOString() : undefined,
-        isActive: form.isActive,
-      }
-
       if (isEditMode && offer) {
+        // Clean payload to remove null/undefined values for update
+        const cleanedPayload = cleanPayload(payload)
+
         // Upload cover image if new file selected
-        if (form.coverImageFile) {
-          const coverResponse = await uploadOfferCoverImage(merchantId, offer.id, form.coverImageFile)
+        if (coverImageFile) {
+          toast.loading('Uploading cover image...', { id: 'offer-upload' })
+          const coverResponse = await uploadOfferCoverImage(merchantId, offer.id, coverImageFile)
           if (coverResponse.success && coverResponse.data) {
-            payload.coverImage = coverResponse.data.url
+            cleanedPayload.coverImage = coverResponse.data.url
           }
         }
 
         // Upload gallery images if new files selected
-        for (const imageFile of form.imageFiles) {
-          const galleryResponse = await uploadOfferGalleryImage(merchantId, offer.id, imageFile)
-          if (galleryResponse.success && galleryResponse.data) {
-            payload.images = galleryResponse.data.images
+        if (imageFiles.length > 0) {
+          toast.loading(`Uploading ${imageFiles.length} gallery image(s)...`, { id: 'offer-upload' })
+          for (const imageFile of imageFiles) {
+            const galleryResponse = await uploadOfferGalleryImage(merchantId, offer.id, imageFile)
+            if (galleryResponse.success && galleryResponse.data) {
+              cleanedPayload.images = galleryResponse.data.images
+            }
           }
         }
 
-        await apiUpdateOffer(merchantId, offer.id, payload)
+        toast.loading('Saving offer details...', { id: 'offer-upload' })
+        await updateOfferMutation.mutateAsync({ offerId: offer.id, data: cleanedPayload })
+        toast.dismiss('offer-upload')
         handleOpenChange(false)
         onUpdated?.()
-        fetchOffers(merchantId)
       } else {
-        console.log('About to call createOffer with merchantId:', merchantId)
-        const createdOffer = await apiCreateOffer(merchantId, {
-          ...payload,
-          estimatedSavingsNpr: form.discountPercentage 
-            ? Math.round(Number(form.originalPriceNpr) * (Number(form.discountPercentage) / 100))
-            : 0,
-        })
+        toast.loading('Creating offer...', { id: 'offer-upload' })
+        // For create, don't clean payload as required fields must be present
+        const createdOffer = await createOfferMutation.mutateAsync(payload)
 
-        console.log('Created offer response after await:', createdOffer)
-        console.log('Created offer response type:', typeof createdOffer)
-        console.log('Created offer response success:', createdOffer?.success)
-        console.log('Created offer response data:', createdOffer?.data)
-
-        if (!createdOffer?.success || !createdOffer?.data) {
-          console.error('Offer creation failed or returned invalid data:', createdOffer)
-          setServerError('Failed to create offer')
+        if (!createdOffer?.data) {
+          toast.dismiss('offer-upload')
           return
         }
 
-        // Upload images after offer creation - wait for all uploads to complete
-        const uploadErrors: string[] = []
-        
-        if (form.coverImageFile) {
+        const newOfferId = createdOffer.data.id
+
+        // Upload cover image if selected
+        if (coverImageFile) {
           try {
-            console.log('Uploading cover image for offer:', createdOffer.data.id)
-            const coverResult = await uploadOfferCoverImage(merchantId, createdOffer.data.id, form.coverImageFile)
-            console.log('Cover image upload result:', coverResult)
+            toast.loading('Uploading cover image...', { id: 'offer-upload' })
+            await uploadOfferCoverImage(merchantId, newOfferId, coverImageFile)
+            toast.success('Cover image uploaded successfully')
           } catch (err: any) {
+            const errDetail = err?.data?.message || err?.message || 'Failed to upload cover image'
             console.error('Failed to upload cover image:', err)
-            uploadErrors.push('Cover image upload failed')
+            toast.error(`Offer created, but cover image failed: ${errDetail}`)
           }
         }
 
-        for (const imageFile of form.imageFiles) {
+        // Upload gallery images if selected
+        if (imageFiles.length > 0) {
           try {
-            console.log('Uploading gallery image for offer:', createdOffer.data.id)
-            const galleryResult = await uploadOfferGalleryImage(merchantId, createdOffer.data.id, imageFile)
-            console.log('Gallery image upload result:', galleryResult)
+            toast.loading(`Uploading ${imageFiles.length} gallery image(s)...`, { id: 'offer-upload' })
+            for (const imageFile of imageFiles) {
+              await uploadOfferGalleryImage(merchantId, newOfferId, imageFile)
+            }
+            toast.success('Gallery images uploaded successfully')
           } catch (err: any) {
+            const errDetail = err?.data?.message || err?.message || 'Failed to upload gallery images'
             console.error('Failed to upload gallery image:', err)
-            uploadErrors.push('Gallery image upload failed')
+            toast.error(`Offer created, but gallery image failed: ${errDetail}`)
           }
         }
 
-        if (uploadErrors.length > 0) {
-          setServerError(`Offer created but images failed to upload: ${uploadErrors.join(', ')}`)
-          // Still close modal since offer was created successfully
-        }
-
+        toast.dismiss('offer-upload')
         handleOpenChange(false)
         onCreated?.()
-        fetchOffers(merchantId)
       }
-    } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Failed to submit offer'
-      toast.error(message)
-      setServerError(message)
-    } finally {
-      setIsSubmitting(false)
+    } catch (error) {
+      toast.dismiss('offer-upload')
+      // Error is handled by the mutation's onError callback
+      // Dialog stays open on error
     }
   }
 
@@ -324,72 +309,75 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <Field label="Offer title" id="offer-title" error={errors.title}>
+          <form onSubmit={form.handleSubmit((data) => {
+            if (Object.keys(form.formState.errors).length > 0) {
+              showFormErrors(form.formState.errors)
+              return
+            }
+            onSubmit(data)
+          })} className="space-y-4">
+            <Field label="Offer Title" id="offer-title" error={form.formState.errors.title?.message}>
               <Input
                 id="offer-title"
-                value={form.title}
-                onChange={setField('title')}
-                placeholder="50% Off on All Items"
-                aria-invalid={!!errors.title}
+                placeholder="e.g. 50% Off All Items"
+                {...form.register('title')}
               />
             </Field>
-
-            <Field label="Description" id="offer-description" error={errors.description}>
+            <Field label="Description" id="offer-description" error={form.formState.errors.description?.message}>
               <Textarea
                 id="offer-description"
-                value={form.description}
-                onChange={setField('description')}
                 placeholder="Describe your offer..."
                 rows={3}
-                aria-invalid={!!errors.description}
+                {...form.register('description')}
               />
             </Field>
-
-            <Field label="Category" id="offer-category" error={errors.categoryId}>
-              <Select value={form.categoryId ?? ''} onValueChange={(value) => setForm({ ...form, categoryId: value })}>
+            <Field label="Terms & Conditions" id="offer-terms">
+              <Textarea
+                id="offer-terms"
+                placeholder="Terms and conditions..."
+                rows={2}
+                {...form.register('terms')}
+              />
+            </Field>
+            <Field label="Category" id="offer-category" error={form.formState.errors.categoryId?.message}>
+              <Select value={form.watch('categoryId') || ''} onValueChange={(val) => val && form.setValue('categoryId', val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Original Price (NPR)" id="offer-original-price" error={errors.originalPriceNpr}>
+              <Field label="Original Price (NPR)" id="offer-original-price" error={form.formState.errors.originalPriceNpr?.message}>
                 <Input
                   id="offer-original-price"
                   type="number"
-                  value={form.originalPriceNpr}
-                  onChange={setField('originalPriceNpr')}
                   placeholder="1000"
-                  aria-invalid={!!errors.originalPriceNpr}
+                  {...form.register('originalPriceNpr')}
                 />
               </Field>
-              <Field label="Discount %" id="offer-discount" error={errors.discountPercentage}>
+              <Field label="Discount %" id="offer-discount" error={form.formState.errors.discountPercentage?.message}>
                 <Input
                   id="offer-discount"
                   type="number"
-                  value={form.discountPercentage}
-                  onChange={setField('discountPercentage')}
                   placeholder="50"
-                  aria-invalid={!!errors.discountPercentage}
+                  {...form.register('discountPercentage')}
                 />
               </Field>
             </div>
 
             <Field label="Cover Image" id="offer-cover-image">
               <div className="space-y-3">
-                {(form.coverImage || form.coverImageFile) && (
+                {(form.watch('coverImage') || coverImageFile) && (
                   <div className="relative w-full h-48 rounded-lg overflow-hidden border">
                     <img 
-                      src={form.coverImageFile ? URL.createObjectURL(form.coverImageFile) : form.coverImage} 
+                      src={coverImageFile ? URL.createObjectURL(coverImageFile) : form.watch('coverImage')} 
                       alt="Cover" 
                       className="w-full h-full object-cover" 
                     />
@@ -398,7 +386,10 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2"
-                      onClick={() => setForm({ ...form, coverImage: '', coverImageFile: null })}
+                      onClick={() => {
+                        form.setValue('coverImage', '')
+                        setCoverImageFile(null)
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -419,7 +410,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) {
-                        setForm({ ...form, coverImageFile: file })
+                        setCoverImageFile(file)
+                        toast.info(`Cover image selected: ${file.name} (${Math.round(file.size / 1024)} KB)`)
                       }
                     }}
                   />
@@ -433,7 +425,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                     }}
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {form.coverImage || form.coverImageFile ? 'Change Cover Image' : 'Upload Cover Image'}
+                    {form.watch('coverImage') || coverImageFile ? 'Change Cover Image' : 'Upload Cover Image'}
                   </Button>
                 </div>
               </div>
@@ -441,9 +433,9 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
 
             <Field label="Gallery Images" id="offer-gallery-images">
               <div className="space-y-3">
-                {(form.images.length > 0 || form.imageFiles.length > 0) && (
+                {((form.watch('images')?.length || 0) > 0 || imageFiles.length > 0) && (
                   <div className="grid grid-cols-4 gap-2">
-                    {form.images.map((img, idx) => (
+                    {form.watch('images')?.map((img, idx) => (
                       <div key={`existing-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border">
                         <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                         <Button
@@ -452,14 +444,15 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                           size="icon"
                           className="absolute top-1 right-1 h-6 w-6"
                           onClick={() => {
-                            setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })
+                            const currentImages = form.watch('images') || []
+                            form.setValue('images', currentImages.filter((_, i) => i !== idx))
                           }}
                         >
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                     ))}
-                    {form.imageFiles.map((file, idx) => (
+                    {imageFiles.map((file, idx) => (
                       <div key={`new-${idx}`} className="relative aspect-square rounded-lg overflow-hidden border">
                         <img src={URL.createObjectURL(file)} alt={`New Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                         <Button
@@ -468,7 +461,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                           size="icon"
                           className="absolute top-1 right-1 h-6 w-6"
                           onClick={() => {
-                            setForm({ ...form, imageFiles: form.imageFiles.filter((_, i) => i !== idx) })
+                            setImageFiles(imageFiles.filter((_, i) => i !== idx))
                           }}
                         >
                           <X className="h-3 w-3" />
@@ -492,7 +485,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) {
-                        setForm({ ...form, imageFiles: [...form.imageFiles, file] })
+                        setImageFiles([...imageFiles, file])
+                        toast.info(`Gallery image added: ${file.name} (${Math.round(file.size / 1024)} KB)`)
                       }
                     }}
                   />
@@ -512,74 +506,55 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
               </div>
             </Field>
 
-            <Field label="Highlights (one per line)" id="offer-highlights">
+            <Field label="Highlights" id="offer-highlights">
               <Textarea
                 id="offer-highlights"
-                value={form.highlights}
-                onChange={setField('highlights')}
-                placeholder="Free delivery&#10;Valid for dine-in only&#10;Cannot be combined with other offers"
+                placeholder="One highlight per line"
                 rows={3}
-              />
-            </Field>
-
-            <Field label="Terms & Conditions" id="offer-terms">
-              <Textarea
-                id="offer-terms"
-                value={form.terms}
-                onChange={setField('terms')}
-                placeholder="Offer valid until stocks last..."
-                rows={3}
+                {...form.register('highlights')}
               />
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Valid from" id="offer-valid-from">
+              <Field label="Valid From" id="offer-valid-from">
                 <Input
                   id="offer-valid-from"
                   type="date"
-                  value={form.validFrom}
-                  onChange={setField('validFrom')}
+                  {...form.register('validFrom')}
                 />
               </Field>
-              <Field label="Valid until" id="offer-valid-until">
+              <Field label="Valid Until" id="offer-valid-until">
                 <Input
                   id="offer-valid-until"
                   type="date"
-                  value={form.validUntil}
-                  onChange={setField('validUntil')}
+                  {...form.register('validUntil')}
                 />
               </Field>
             </div>
-
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="offer-active"
-                checked={form.isActive}
-                onCheckedChange={(checked) => setForm(prev => ({ ...prev, isActive: checked as boolean }))}
+                checked={form.watch('isActive')}
+                onCheckedChange={(checked) => form.setValue('isActive', checked as boolean)}
               />
-              <Label htmlFor="offer-active">Active</Label>
+              <Label htmlFor="offer-active" className="cursor-pointer">
+                Active Offer
+              </Label>
             </div>
-
-            {serverError && (
-              <p role="alert" className="text-sm text-destructive">
-                {serverError}
-              </p>
-            )}
-
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                disabled={isSubmitting}
                 onClick={() => handleOpenChange(false)}
+                disabled={createOfferMutation.isPending || updateOfferMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button type="submit" disabled={createOfferMutation.isPending || updateOfferMutation.isPending}>
+                {createOfferMutation.isPending || updateOfferMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isEditMode ? 'Saving changes...' : 'Creating offer...'}
+                    {isEditMode ? 'Saving…' : 'Creating…'}
                   </>
                 ) : (
                   isEditMode ? 'Save changes' : 'Create offer'

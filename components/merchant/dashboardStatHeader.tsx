@@ -2,7 +2,7 @@
 
 import { useMerchantAnalyticsStore } from "@/lib/merchant/stores/analytics-store";
 import { useAuthStore } from "@/lib/auth";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Users, Ticket, Building2, Shield, DollarSign } from "lucide-react";
 import { ErrorFallback } from "@/components/ui/error-fallback";
@@ -11,16 +11,22 @@ export default function DashboardStatHeader() {
   const { merchantId } = useAuthStore();
   const { dashboard, revenueAnalytics, loading, error, fetchDashboard, fetchRevenueAnalytics } =
     useMerchantAnalyticsStore();
+  const hasFetchedRef = useRef<string | null>(null);
 
   const handleRetry = () => {
     if (merchantId) {
+      hasFetchedRef.current = merchantId;
       fetchDashboard(merchantId);
       fetchRevenueAnalytics(merchantId, { range: '30d' });
     }
   };
 
   useEffect(() => {
-    handleRetry();
+    if (merchantId && hasFetchedRef.current !== merchantId) {
+      hasFetchedRef.current = merchantId;
+      fetchDashboard(merchantId);
+      fetchRevenueAnalytics(merchantId, { range: '30d' });
+    }
   }, [merchantId, fetchDashboard, fetchRevenueAnalytics]);
 
   const totalRevenue = revenueAnalytics?.totalRevenue || 0;

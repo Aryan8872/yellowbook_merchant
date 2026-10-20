@@ -21,11 +21,19 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-  
+    const payload = response.data;
+    const tokens = payload?.tokens || (payload?.accessToken ? payload : null);
+    const user = payload?.user;
 
-    const { tokens, user } = response.data;
-    const accessToken=tokens.accessToken;
-    const refreshToken=tokens.refreshToken;
+    if (!tokens?.accessToken) {
+      return NextResponse.json(
+        { success: false, message: response.message || 'Authentication failed: Invalid credentials or unauthorized.' },
+        { status: 401 }
+      );
+    }
+
+    const accessToken = tokens.accessToken;
+    const refreshToken = tokens.refreshToken;
 
     const res = NextResponse.json({
       success: true,

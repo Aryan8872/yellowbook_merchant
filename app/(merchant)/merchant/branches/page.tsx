@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useState, useCallback } from "react"
 import { useAuthStore } from "@/lib/auth/auth-store"
-import { useBranchStore } from "@/lib/merchant/branch-store"
+import { useBranches, useDeleteBranch, useUpdateBranch } from "@/lib/merchant/hooks/use-branches-query"
 import { DataTable, StatusToggle, ActionMenu } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import type { DataTableFeatures } from "@/components/merchant/offer/offerTable/data-table-features"
@@ -17,48 +17,47 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { MapPin, Phone, Building2, Plus, Search, Filter } from "lucide-react"
+import { MapPin, Phone, Building2, Plus, Search, Filter, Map, Table } from "lucide-react"
 import { BranchFormDialog } from "@/components/merchant/branch/BranchForm"
 import { DeleteBranchDialog } from "@/components/merchant/branch/DeleteBranchDialog"
+import { BranchMap } from "@/components/map/branch-map"
 import { Branch } from "@/lib/types/branch"
 
 export default function Page() {
   const { merchantId } = useAuthStore()
-  const { branches, isLoading, error, pagination, listBranches, clearError, toggleBranchActive, deleteBranch } = useBranchStore()
   const [deleteBranchState, setDeleteBranchState] = useState<Branch | null>(null)
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null)
+  const [viewMode, setViewMode] = useState<'table' | 'map'>('table')
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<string>('');
+
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  // TanStack Query for fetching branches
+  const { data: branchesData, isLoading, error, refetch } = useBranches(merchantId || '', {
+    page: currentPage,
+    limit: 20,
+    search: appliedSearch.trim() || undefined,
+    isActive: status === 'active' ? true : status === 'inactive' ? false : undefined,
+  });
+
+  // Mutations
+  const deleteBranchMutation = useDeleteBranch(merchantId || '');
+  const updateBranchMutation = useUpdateBranch(merchantId || '');
+
+  const branches = branchesData?.data || [];
+  const pagination = branchesData?.pagination;
   const limit = pagination?.limit || 20;
   const total = pagination?.total || 0;
   const totalPages = pagination?.totalPages || 1;
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<string>('');
-
-  const loadData = useCallback((targetPage: number = 1) => {
-    if (merchantId) {
-      setCurrentPage(targetPage);
-      listBranches(merchantId, {
-        page: targetPage,
-        limit,
-        search: search.trim() || undefined,
-        isActive: status === 'active' ? true : status === 'inactive' ? false : undefined,
-      });
-    }
-  }, [merchantId, limit, search, status, listBranches]);
-
-  const hasFetchedRef = useRef(false);
-  useEffect(() => {
-    if (merchantId && !hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      listBranches(merchantId, { page: 1, limit });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [merchantId]);
-
   const handleToggleStatus = async (branch: Branch) => {
-    await toggleBranchActive(merchantId!, branch.id, !branch.isActive)
+    await updateBranchMutation.mutateAsync({
+      branchId: branch.id,
+      data: { isActive: !branch.isActive },
+    });
   }
 
   const handleEdit = (branch: Branch) => {
@@ -70,23 +69,28 @@ export default function Page() {
   }
 
   const handleDeleteConfirm = async (branch: Branch) => {
-    const result = await deleteBranch(merchantId!, branch.id)
-    if (result.success && merchantId) {
-      loadData(1)
-    }
+    await deleteBranchMutation.mutateAsync(branch.id)
     setDeleteBranchState(null)
   }
 
   const handleSearch = () => {
-    loadData(1);
+    setAppliedSearch(search);
+    setCurrentPage(1);
+  };
+
+  const handleReset = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setStatus('');
+    setCurrentPage(1);
   };
 
   const handleFilter = () => {
-    loadData(1);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
-    loadData(newPage);
+    setCurrentPage(newPage);
   };
 
   const columns: ColumnDef<DataTableFeatures, Branch>[] = [
@@ -96,9 +100,13 @@ export default function Page() {
       cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
     },
     {
-      accessorKey: "city",
-      header: "City",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.city}</span>,
+      accessorKey: "district",
+      header: "District",
+      cell: ({ row }) => (
+        <Badge variant="outline" className="font-normal capitalize">
+          {row.original.district || 'N/A'}
+        </Badge>
+      ),
     },
     {
       accessorKey: "address",
@@ -172,10 +180,7 @@ export default function Page() {
             Please check your connection and try again.
           </p>
           <button
-            onClick={() => {
-              clearError()
-              if (merchantId) listBranches(merchantId)
-            }}
+            onClick={() => refetch()}
             className="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90"
           >
             Retry
@@ -197,7 +202,7 @@ export default function Page() {
         <BranchFormDialog
           merchantId={merchantId!}
           onCreated={() => {
-            if (merchantId) loadData(1)
+            refetch()
           }}
         />
       </div>
@@ -212,15 +217,21 @@ export default function Page() {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or city..."
+                  placeholder="Search by name or city... (Press Enter to search)"
                   value={search}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch();
+                    }
+                  }}
                   className="pl-8"
                 />
               </div>
             </div>
             <Select value={status} onValueChange={(value) => setStatus(value || '')}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-45">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -233,26 +244,74 @@ export default function Page() {
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-            <Button onClick={handleFilter}>
-              <Filter className="mr-2 h-4 w-4" />
-              Apply Filters
-            </Button>
+            {(appliedSearch || status) && (
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <Table className="h-4 w-4 mr-2" />
+                Table
+              </Button>
+              <Button
+                variant={viewMode === 'map' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('map')}
+              >
+                <Map className="h-4 w-4 mr-2" />
+                Map
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <DataTable
-        columns={columns}
-        data={branches}
-        isLoading={isLoading}
-        manualPagination
-        pageCount={totalPages}
-        rowCount={total}
-        pageIndex={currentPage - 1}
-        onPageChange={(zeroBasedPage) => handlePageChange(zeroBasedPage + 1)}
-        showToolbar={false}
-        emptyMessage="No branches found."
-      />
+      {viewMode === 'map' ? (
+        <Card>
+          <CardContent className="p-0">
+            <BranchMap
+              branches={branches.map((b) => ({
+                id: b.id,
+                name: b.name,
+                lat: b.lat,
+                lng: b.lng,
+                address: b.address,
+                city: b.city,
+                district: b.district,
+                phone: b.phone,
+                isActive: b.isActive,
+                operatingHours: b.operatingHours,
+              }))}
+              selectedBranchId={editingBranch?.id}
+              onEditBranch={(branch) => {
+                const fullBranch = branches.find((b) => b.id === branch.id)
+                if (fullBranch) {
+                  setEditingBranch(fullBranch)
+                }
+              }}
+              className="h-150"
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={branches}
+          isLoading={isLoading}
+          manualPagination
+          pageCount={totalPages}
+          rowCount={total}
+          pageIndex={currentPage - 1}
+          onPageChange={(zeroBasedPage) => handlePageChange(zeroBasedPage + 1)}
+          showToolbar={false}
+          emptyMessage="No branches found."
+        />
+      )}
 
       {/* Edit Branch Dialog */}
       {editingBranch && (
@@ -265,7 +324,7 @@ export default function Page() {
           }}
           onUpdated={() => {
             setEditingBranch(null)
-            if (merchantId) loadData(1)
+            refetch()
           }}
         />
       )}

@@ -11,10 +11,14 @@ export async function GET(
   { params }: { params: Promise<{ merchantId: string }> }
 ) {
   try {
-    const { merchantId } = await params
+    const { merchantId } = await params;
+    const searchParams = Object.fromEntries(req.nextUrl.searchParams.entries());
     const data = await apiClient.get(
       `/api/v1/merchants/${merchantId}/branches`,
-      { headers: getAuthHeader(req) }
+      {
+        headers: getAuthHeader(req),
+        params: searchParams,
+      }
     );
     if (!data.success) {
       return NextResponse.json(
@@ -22,7 +26,7 @@ export async function GET(
         { status: 400 }
       );
     }
-    return NextResponse.json({ success: true, data: data.data });
+    return NextResponse.json(data);
   } catch (e: any) {
     return NextResponse.json(
       { success: false, message: e?.message ?? 'Internal server error' },

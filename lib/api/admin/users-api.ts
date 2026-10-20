@@ -1,5 +1,8 @@
 import { apiClient } from '../client';
 import type { ApiResponse } from '../types';
+import type { ActiveSubscription } from './merchants-api';
+
+export type { ActiveSubscription };
 
 export interface User {
   id: string;
@@ -13,6 +16,11 @@ export interface User {
   merchantId?: string | null;
   createdAt: string;
   updatedAt?: string;
+  activeSubscription?: ActiveSubscription | null;
+  _count?: {
+    subscriptionRecords: number;
+    redemptions: number;
+  };
 }
 
 export interface CreateUserDto {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   AreaChart,
   Area,
@@ -38,9 +38,11 @@ export default function DashboardBody() {
     fetchAnalytics,
     fetchRevenueAnalytics,
   } = useMerchantAnalyticsStore();
+  const hasFetchedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (merchantId) {
+    if (merchantId && hasFetchedRef.current !== merchantId) {
+      hasFetchedRef.current = merchantId;
       fetchAnalytics(merchantId, { range: '7d' });
       fetchRevenueAnalytics(merchantId, { range: '30d' });
     }

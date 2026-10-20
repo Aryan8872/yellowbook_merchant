@@ -1,7 +1,7 @@
 "use client"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useState, useCallback } from "react"
 import { useAuthStore } from "@/lib/auth"
-import { useMerchantOffersStore } from "@/lib/merchant/stores/offers-store"
+import { useOffers, useDeleteOffer, useToggleOfferStatus, useToggleOfferFeatured } from "@/lib/merchant/hooks/use-offers-query"
 import { OfferFormDialog } from "@/components/merchant/offer/OfferForm"
 import { DataTable, StatusToggle, ActionMenu } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
@@ -22,51 +22,46 @@ import { Offer } from "@/lib/api/merchant/offers-api"
 
 export default function MerchantOffersPage() {
   const { merchantId } = useAuthStore();
-  const { offers, loading, error, pagination, fetchOffers, deleteOffer, toggleOfferStatus, toggleOfferFeatured, clearError } = useMerchantOffersStore();
   const [editingOffer, setEditingOffer] = useState<Offer | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<string>('');
+
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  // TanStack Query for fetching offers
+  const { data: offersData, isLoading, error, refetch } = useOffers(merchantId || '', {
+    page: currentPage,
+    limit: 20,
+    search: appliedSearch.trim() || undefined,
+    isActive: status === 'active' ? true : status === 'inactive' ? false : undefined,
+  });
+
+  // Mutations
+  const deleteOfferMutation = useDeleteOffer(merchantId || '');
+  const toggleStatusMutation = useToggleOfferStatus(merchantId || '');
+  const toggleFeaturedMutation = useToggleOfferFeatured(merchantId || '');
+
+  const offers = offersData?.data || [];
+  const pagination = offersData?.pagination;
   const limit = pagination?.limit || 20;
   const total = pagination?.total || 0;
   const totalPages = pagination?.totalPages || 1;
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<string>('');
-
-  const loadData = useCallback((targetPage: number = 1) => {
-    if (merchantId) {
-      setCurrentPage(targetPage);
-      fetchOffers(merchantId, {
-        page: targetPage,
-        limit,
-        search: search.trim() || undefined,
-        isActive: status === 'active' ? true : status === 'inactive' ? false : undefined,
-      });
-    }
-  }, [merchantId, limit, search, status, fetchOffers]);
-
-  const hasFetchedRef = useRef(false);
-  useEffect(() => {
-    if (merchantId && !hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchOffers(merchantId, { page: 1, limit });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [merchantId]);
-
   const handleDelete = async (offerId: string) => {
     if (confirm("Are you sure you want to delete this offer?")) {
-      await deleteOffer(merchantId!, offerId)
+      await deleteOfferMutation.mutateAsync(offerId)
     }
   }
 
   const handleToggleStatus = async (offerId: string, isActive: boolean) => {
-    await toggleOfferStatus(merchantId!, offerId, isActive)
+    await toggleStatusMutation.mutateAsync({ offerId, isActive })
   }
 
   const handleToggleFeatured = async (offerId: string, isFeatured: boolean) => {
-    await toggleOfferFeatured(merchantId!, offerId, isFeatured)
+    await toggleFeaturedMutation.mutateAsync({ offerId, isFeatured })
   }
 
   const handleEdit = (offer: Offer) => {
@@ -75,15 +70,23 @@ export default function MerchantOffersPage() {
   }
 
   const handleSearch = () => {
-    loadData(1);
+    setAppliedSearch(search);
+    setCurrentPage(1);
+  };
+
+  const handleReset = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setStatus('');
+    setCurrentPage(1);
   };
 
   const handleFilter = () => {
-    loadData(1);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
-    loadData(newPage);
+    setCurrentPage(newPage);
   };
 
   const columns: ColumnDef<DataTableFeatures, Offer>[] = [
@@ -137,14 +140,14 @@ export default function MerchantOffersPage() {
         <ActionMenu
           onEdit={() => handleEdit(row.original)}
           onDelete={() => handleDelete(row.original.id)}
-          onToggle={() => handleToggleStatus(row.original.id, row.original.isActive ?? false)}
+          onToggle={() => handleToggleStatus(row.original.id, !(row.original.isActive ?? false))}
           toggleLabel={row.original.isActive ? "Deactivate" : "Activate"}
         />
       ),
     },
   ]
 
-  const isInitialLoad = loading && offers.length === 0
+  const isInitialLoad = isLoading && offers.length === 0
 
   if (isInitialLoad) {
     return (
@@ -164,10 +167,7 @@ export default function MerchantOffersPage() {
             Please check your connection and try again.
           </p>
           <button
-            onClick={() => {
-              clearError()
-              if (merchantId) fetchOffers(merchantId)
-            }}
+            onClick={() => refetch()}
             className="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90"
           >
             Retry
@@ -184,7 +184,7 @@ export default function MerchantOffersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Offers</h1>
           <p className="text-muted-foreground">Manage your deals and offers.</p>
         </div>
-        <OfferFormDialog onCreated={() => merchantId && loadData(1)} />
+        <OfferFormDialog onCreated={() => refetch()} />
       </div>
 
       <Card>
@@ -197,9 +197,15 @@ export default function MerchantOffersPage() {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by title..."
+                  placeholder="Search by title... (Press Enter to search)"
                   value={search}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch();
+                    }
+                  }}
                   className="pl-8"
                 />
               </div>
@@ -218,10 +224,11 @@ export default function MerchantOffersPage() {
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-            <Button onClick={handleFilter}>
-              <Filter className="mr-2 h-4 w-4" />
-              Apply Filters
-            </Button>
+            {(appliedSearch || status) && (
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -229,7 +236,7 @@ export default function MerchantOffersPage() {
       <DataTable
         columns={columns}
         data={offers}
-        isLoading={loading}
+        isLoading={isLoading}
         manualPagination
         pageCount={totalPages}
         rowCount={total}
@@ -246,7 +253,7 @@ export default function MerchantOffersPage() {
         onUpdated={() => {
           setIsEditDialogOpen(false);
           setEditingOffer(undefined);
-          merchantId && loadData(1);
+          refetch();
         }}
       />
     </div>

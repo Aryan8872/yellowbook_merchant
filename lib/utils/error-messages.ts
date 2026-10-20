@@ -200,21 +200,75 @@ export function getSanitizedError(error: any): ErrorDetail & { correlationId?: s
   const correlationId = error?.correlationId || error?.data?.correlationId;
   const statusCode = error?.statusCode || error?.status;
 
-  // 1. If error has a known AppErrorCode, map it directly
+  // 1. If error has a known AppErrorCode, map it directly, but allow custom backend message to take precedence if non-technical
   const errorCode = error?.errorCode || error?.data?.errorCode;
+  const rawCustomMsg = error?.message || error?.data?.message;
+
   if (errorCode && ERROR_MESSAGES[errorCode]) {
+    const defaultEntry = ERROR_MESSAGES[errorCode];
+    const customText = Array.isArray(rawCustomMsg)
+      ? rawCustomMsg.join(', ')
+      : typeof rawCustomMsg === 'string' && rawCustomMsg.trim() && !isTechnicalErrorString(rawCustomMsg)
+      ? rawCustomMsg
+      : undefined;
+
+    // Use custom backend message if it's more specific than the static dictionary copy,
+    // except for generic BAD_REQUEST or VALIDATION_FAILED which shouldn't override specific copy
+    const finalMessage = (errorCode === AppErrorCode.BAD_REQUEST || errorCode === AppErrorCode.VALIDATION_FAILED) && customText
+      ? customText
+      : customText || defaultEntry.message;
+
     return {
-      ...ERROR_MESSAGES[errorCode],
+      title: defaultEntry.title,
+      message: finalMessage,
       correlationId,
       statusCode,
     };
   }
 
   // 2. Map standard HTTP status codes
+  if (statusCode === 400) {
+    const rawMsg = error?.message || error?.data?.message;
+    if (Array.isArray(rawMsg) && rawMsg.length > 0) {
+      return {
+        title: 'Validation Error',
+        message: rawMsg.join(', '),
+        correlationId,
+        statusCode,
+      };
+    }
+    if (typeof rawMsg === 'string' && rawMsg.trim() && !isTechnicalErrorString(rawMsg)) {
+      return {
+        title: 'Invalid Request',
+        message: rawMsg,
+        correlationId,
+        statusCode,
+      };
+    }
+    return { ...ERROR_MESSAGES[AppErrorCode.VALIDATION_FAILED], correlationId, statusCode };
+  }
   if (statusCode === 401) {
+    const rawMsg = error?.message || error?.data?.message;
+    if (typeof rawMsg === 'string' && rawMsg.trim() && !isTechnicalErrorString(rawMsg)) {
+      return {
+        title: 'Authentication Required',
+        message: rawMsg,
+        correlationId,
+        statusCode,
+      };
+    }
     return { ...ERROR_MESSAGES[AppErrorCode.UNAUTHORIZED], correlationId, statusCode };
   }
   if (statusCode === 403) {
+    const rawMsg = error?.message || error?.data?.message;
+    if (typeof rawMsg === 'string' && rawMsg.trim() && !isTechnicalErrorString(rawMsg)) {
+      return {
+        title: 'Access Denied',
+        message: rawMsg,
+        correlationId,
+        statusCode,
+      };
+    }
     return { ...ERROR_MESSAGES[AppErrorCode.FORBIDDEN], correlationId, statusCode };
   }
   if (statusCode === 404) {
@@ -232,6 +286,14 @@ export function getSanitizedError(error: any): ErrorDetail & { correlationId?: s
 
   // 3. If error message is clean and not technical, safe to show
   const rawMessage = typeof error === 'string' ? error : error?.message;
+  if (Array.isArray(rawMessage) && rawMessage.length > 0) {
+    return {
+      title: 'Action Failed',
+      message: rawMessage.join(', '),
+      correlationId,
+      statusCode,
+    };
+  }
   if (rawMessage && typeof rawMessage === 'string' && !isTechnicalErrorString(rawMessage)) {
     return {
       title: 'Action Failed',

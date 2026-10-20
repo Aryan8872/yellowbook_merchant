@@ -71,6 +71,38 @@ export async function getSystemReadiness(): Promise<SystemReadiness> {
   }
 }
 
+export interface PlanSubscriberBreakdown {
+  planId: string;
+  code: string;
+  name: string;
+  audience: string;
+  billingCycle: string;
+  priceNpr: number;
+  activeCount: number;
+}
+
+export interface LiveSystemMetrics {
+  liveSessions: {
+    total: number;
+    users: number;
+    merchants: number;
+    windowMinutes: number;
+  };
+  activeSubscribers: {
+    total: number;
+    users: number;
+    merchants: number;
+    byPlan: PlanSubscriberBreakdown[];
+  };
+}
+
+/**
+ * Get real-time live system metrics (sliding sessions & subscribers breakdown)
+ */
+export async function getLiveSystemMetrics(): Promise<ApiResponse<LiveSystemMetrics>> {
+  return apiClient.get<LiveSystemMetrics>('/admin/metrics/live');
+}
+
 /**
  * Get admin metrics summary — requires ADMIN JWT.
  */

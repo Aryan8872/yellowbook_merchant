@@ -35,6 +35,10 @@ export const createMerchantSchema = z.object({
     .max(50, 'VAT number must be less than 50 characters')
     .optional()
     .or(z.literal('')),
+  address: z
+    .string()
+    .optional()
+    .or(z.literal('')),
   logoUrl: z
     .string()
     .url('Invalid logo URL')
@@ -45,6 +49,9 @@ export const createMerchantSchema = z.object({
     .url('Invalid cover URL')
     .optional()
     .or(z.literal('')),
+  planId: z.string().optional().or(z.literal('')),
+  durationDays: z.coerce.number().min(1).max(3650).optional(),
+  isTrial: z.boolean().optional(),
 });
 
 export const updateMerchantSchema = z.object({
@@ -82,6 +89,10 @@ export const updateMerchantSchema = z.object({
   vatNumber: z
     .string()
     .max(50, 'VAT number must be less than 50 characters')
+    .optional()
+    .or(z.literal('')),
+  address: z
+    .string()
     .optional()
     .or(z.literal('')),
   logoUrl: z

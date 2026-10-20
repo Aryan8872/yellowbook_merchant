@@ -23,10 +23,11 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
-import { useMerchants } from '@/lib/lib/react-query/hooks/use-merchants';
-import { useCreateUser } from '@/lib/lib/react-query/hooks/use-users';
+import { useMerchants } from '@/lib/admin/hooks/use-merchants-query';
+import { useCreateUser } from '@/lib/admin/hooks/use-users-query';
 import { ImageUploadInput } from './image-upload-input';
 import { createUserSchema, type CreateUserInput } from '@/lib/lib/validations/user-validation';
+import { showFormErrors } from '@/lib/utils/form-toast';
 
 interface UserCreateDialogProps {
   open: boolean;
@@ -96,7 +97,13 @@ export function UserCreateDialog({ open, onOpenChange }: UserCreateDialogProps) 
           </div>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+        <form onSubmit={form.handleSubmit((data) => {
+          if (Object.keys(form.formState.errors).length > 0) {
+            showFormErrors(form.formState.errors)
+            return
+          }
+          onSubmit(data)
+        })} className="space-y-4 py-2">
           {/* Avatar Upload */}
           <div className="flex justify-center">
             <ImageUploadInput

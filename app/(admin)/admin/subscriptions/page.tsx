@@ -284,11 +284,11 @@ export default function AdminSubscriptionsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-semibold">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                               {plan.activeSubscribersCount || 0} active
                             </span>
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-[11px] text-muted-foreground pl-1">
                               {plan.totalSubscribersCount || 0} total assigned
                             </span>
                           </div>

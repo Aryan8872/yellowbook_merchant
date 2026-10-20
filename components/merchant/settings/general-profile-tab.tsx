@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Camera, CheckCircle2, Image as ImageIcon, Loader2, Sparkles, Store } from 'lucide-react';
+import { uploadMediaFile } from '@/lib/api/upload';
+import { toast } from 'sonner';
 
 export function GeneralProfileTab() {
   const { profile, updateProfile, isSaving } = useProfileStore();
@@ -18,6 +20,9 @@ export function GeneralProfileTab() {
   const [contactPhone, setContactPhone] = useState('');
   const [logoPreview, setLogoPreview] = useState('');
   const [coverPreview, setCoverPreview] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -40,9 +45,9 @@ export function GeneralProfileTab() {
         setFeedback({ type: 'error', message: 'Logo file size must be less than 2MB' });
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => setLogoPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      toast.info(`Logo selected: ${file.name}`);
     }
   };
 
@@ -53,29 +58,62 @@ export function GeneralProfileTab() {
         setFeedback({ type: 'error', message: 'Cover image must be less than 4MB' });
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+      toast.info(`Cover image selected: ${file.name}`);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
+    setIsUploading(true);
 
-    const result = await updateProfile({
-      name: tradeName,
-      description: bio,
-      contactEmail,
-      contactPhone,
-      logoUrl: logoPreview,
-      coverUrl: coverPreview,
-    });
+    try {
+      let finalLogoUrl = profile?.logoUrl || undefined;
+      let finalCoverUrl = profile?.coverUrl || undefined;
 
-    if (result.success) {
-      setFeedback({ type: 'success', message: result.message || 'Profile saved successfully!' });
-    } else {
-      setFeedback({ type: 'error', message: result.message || 'Failed to update profile.' });
+      // Upload logo if newly selected
+      if (logoFile) {
+        toast.loading('Uploading merchant logo...', { id: 'profile-upload' });
+        const logoRes = await uploadMediaFile(logoFile, 'merchants/logos');
+        if (logoRes.success && logoRes.data?.url) {
+          finalLogoUrl = logoRes.data.url;
+        }
+      }
+
+      // Upload cover if newly selected
+      if (coverFile) {
+        toast.loading('Uploading merchant cover...', { id: 'profile-upload' });
+        const coverRes = await uploadMediaFile(coverFile, 'merchants/covers');
+        if (coverRes.success && coverRes.data?.url) {
+          finalCoverUrl = coverRes.data.url;
+        }
+      }
+
+      toast.loading('Saving merchant profile...', { id: 'profile-upload' });
+      const result = await updateProfile({
+        name: tradeName,
+        description: bio,
+        contactEmail,
+        contactPhone,
+        logoUrl: finalLogoUrl,
+        coverUrl: finalCoverUrl,
+      });
+
+      toast.dismiss('profile-upload');
+      setIsUploading(false);
+
+      if (result.success) {
+        setFeedback({ type: 'success', message: result.message || 'Profile saved successfully!' });
+      } else {
+        setFeedback({ type: 'error', message: result.message || 'Failed to update profile.' });
+      }
+    } catch (err: any) {
+      toast.dismiss('profile-upload');
+      setIsUploading(false);
+      const errMsg = err?.data?.message || err?.message || 'Failed to update profile.';
+      setFeedback({ type: 'error', message: errMsg });
     }
   };
 

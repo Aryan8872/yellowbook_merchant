@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useEffect, useState, useTransition } from 'react';
-import { useUsersStore } from '@/lib/admin/stores/users-store';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUsers, useActivateUser, useDeactivateUser, useDeleteUser } from '@/lib/admin/hooks/use-users-query';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
@@ -21,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2, Search, UserPlus } from 'lucide-react';
+import { MoreVertical, ShieldCheck, ShieldX, Pencil, Trash2, Search, UserPlus, Eye } from 'lucide-react';
 import CustomSpinner from '@/components/merchant/custom-spinner';
 import { ErrorFallback } from '@/components/ui/error-fallback';
 import { UserEditDialog } from '@/lib/admin/components/user-edit-dialog';
@@ -37,24 +38,34 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+import { useDebounce } from '@/lib/utils/use-debounce';
+
 export default function AdminUsersPage() {
-  const { users, loading, error, fetchUsers, activateUser, deactivateUser, deleteUser } = useUsersStore();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUsers({
-        search: searchQuery.trim() || undefined,
-        role: selectedRole !== 'all' ? selectedRole : undefined,
-      });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedRole, fetchUsers]);
+  const debouncedSearch = useDebounce(searchQuery.trim(), 300);
+
+  // TanStack Query for fetching users
+  const { data: usersData, isLoading, error, refetch } = useUsers({
+    search: debouncedSearch || undefined,
+    role: selectedRole !== 'all' ? selectedRole : undefined,
+  });
+
+  // Mutations
+  const activateUserMutation = useActivateUser();
+  const deactivateUserMutation = useDeactivateUser();
+  const deleteUserMutation = useDeleteUser();
+
+  const users = Array.isArray(usersData)
+    ? usersData
+    : (Array.isArray(usersData?.data) ? usersData.data : []);
+  const total = usersData?.pagination?.total ?? users.length;
 
   const handleEdit = (user: any) => {
     setSelectedUser(user);
@@ -68,10 +79,18 @@ export default function AdminUsersPage() {
 
   const confirmDelete = async () => {
     if (selectedUser) {
-      await deleteUser(selectedUser.id);
+      await deleteUserMutation.mutateAsync(selectedUser.id);
       setDeleteDialogOpen(false);
       setSelectedUser(null);
     }
+  };
+
+  const handleActivate = async (userId: string) => {
+    await activateUserMutation.mutateAsync({ userId });
+  };
+
+  const handleDeactivate = async (userId: string) => {
+    await deactivateUserMutation.mutateAsync({ userId });
   };
 
   return (
@@ -115,21 +134,21 @@ export default function AdminUsersPage() {
         </Select>
       </div>
 
-      {loading && (
+      {isLoading && (
         <div className="py-12">
           <CustomSpinner />
         </div>
       )}
       
-      {error && !loading && (
+      {error && !isLoading && (
         <ErrorFallback
           title="Failed to Load Users"
-          message={error}
-          onRetry={() => fetchUsers()}
+          message={error.message || 'An error occurred'}
+          onRetry={() => refetch()}
         />
       )}
 
-      {!loading && !error && (
+      {!isLoading && !error && (
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
@@ -137,6 +156,7 @@ export default function AdminUsersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Plan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -157,6 +177,21 @@ export default function AdminUsersPage() {
                       <Badge variant="outline">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
+                      {user.activeSubscription ? (
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-indigo-400 text-indigo-700 bg-indigo-50 dark:bg-indigo-950 dark:text-indigo-300"
+                        >
+                          {user.activeSubscription.plan.name}
+                          {user.activeSubscription.isTrial && (
+                            <span className="ml-1 text-[10px] opacity-70">(Trial)</span>
+                          )}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No Plan</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={user.isActive ? 'default' : 'secondary'}>
                         {user.isActive ? 'Active' : 'Inactive'}
                       </Badge>
@@ -169,17 +204,27 @@ export default function AdminUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(user)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
                           {user.isActive ? (
-                            <DropdownMenuItem onClick={() => deactivateUser(user.id)}>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeactivate(user.id)}
+                              disabled={deactivateUserMutation.isPending}
+                            >
                               <ShieldX className="mr-2 h-4 w-4" />
                               Deactivate
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem onClick={() => activateUser(user.id)}>
+                            <DropdownMenuItem 
+                              onClick={() => handleActivate(user.id)}
+                              disabled={activateUserMutation.isPending}
+                            >
                               <ShieldCheck className="mr-2 h-4 w-4" />
                               Activate
                             </DropdownMenuItem>

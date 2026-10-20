@@ -53,23 +53,32 @@ export const useMerchantStaffStore = create<StaffState>()(
           }
 
           console.log('[Staff Store] Fetching staff for merchant:', merchantId, 'with params:', params);
-          const response = await getStaff(merchantId);
+          const response = await getStaff(merchantId, params);
           console.log('[Staff Store] Raw API response:', response);
 
           if (response.success && response.data) {
             console.log('[Staff Store] Staff data loaded:', response.data);
-            const rows = Array.isArray(response.data) ? response.data : [];
+            const rawData = response.data;
+            const rows = Array.isArray(rawData)
+              ? rawData
+              : Array.isArray((rawData as any).data)
+              ? (rawData as any).data
+              : [];
+            const paginationObj =
+              !Array.isArray(rawData) && (rawData as any).pagination
+                ? (rawData as any).pagination
+                : {
+                    page: params?.page || 1,
+                    limit: params?.limit || (rows.length || 20),
+                    total: rows.length,
+                    totalPages: 1,
+                  };
+
             set({
               staff: rows,
-              pagination: {
-                page: 1,
-                limit: rows.length,
-                total: rows.length,
-                totalPages: 1,
-              },
+              pagination: paginationObj,
               loading: false,
             });
-            toast.success('Staff loaded successfully');
           } else {
             console.error('[Staff Store] Failed to fetch staff:', response.message);
             set({
@@ -118,11 +127,14 @@ export const useMerchantStaffStore = create<StaffState>()(
           }
         } catch (error: any) {
           console.error('[Staff Store] Error creating staff:', error);
+          const message = error?.response?.data?.message || error?.message || 'Failed to create staff';
+          // Handle validation error arrays
+          const displayMessage = Array.isArray(message) ? message.join(', ') : message;
           set({
-            error: error.message || 'Failed to create staff',
+            error: displayMessage,
             loading: false,
           });
-          toast.error(error.message || 'Failed to create staff');
+          toast.error(displayMessage);
         }
       },
 
@@ -150,11 +162,14 @@ export const useMerchantStaffStore = create<StaffState>()(
           }
         } catch (error: any) {
           console.error('[Staff Store] Error updating staff:', error);
+          const message = error?.response?.data?.message || error?.message || 'Failed to update staff';
+          // Handle validation error arrays
+          const displayMessage = Array.isArray(message) ? message.join(', ') : message;
           set({
-            error: error?.message || 'Failed to update staff',
+            error: displayMessage,
             loading: false,
           });
-          toast.error(error?.message || 'Failed to update staff');
+          toast.error(displayMessage);
         }
       },
 

@@ -12,7 +12,11 @@ const mockRegistry: Record<string, Record<string, MockHandler>> = {
     POST: (body) => ({
       ...mockLoginResponse,
       data: {
-        ...mockLoginResponse.data,
+        tokens: {
+          accessToken: mockLoginResponse.data.accessToken,
+          refreshToken: mockLoginResponse.data.refreshToken,
+          expiresIn: mockLoginResponse.data.expiresIn,
+        },
         user: {
           ...mockMerchantUser,
           email: body?.email || mockMerchantUser.email,

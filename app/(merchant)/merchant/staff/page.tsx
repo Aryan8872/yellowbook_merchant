@@ -109,6 +109,16 @@ export default function StaffPage() {
     loadData(1);
   };
 
+  const handleReset = () => {
+    setSearch('');
+    setStatus('');
+    setCurrentPage(1);
+    fetchStaff({
+      page: 1,
+      limit,
+    });
+  };
+
   const handleFilter = () => {
     loadData(1);
   };
@@ -274,9 +284,15 @@ export default function StaffPage() {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Search by name, email, or phone... (Press Enter)"
                   value={search}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearch();
+                    }
+                  }}
                   className="pl-8"
                 />
               </div>
@@ -295,10 +311,11 @@ export default function StaffPage() {
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-            <Button onClick={handleFilter}>
-              <Filter className="mr-2 h-4 w-4" />
-              Apply Filters
-            </Button>
+            {(search || status) && (
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

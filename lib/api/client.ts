@@ -261,17 +261,17 @@ export async function request<T = any>(
 
     return data;
   } catch (error: any) {
-    // If network error occurred (e.g. backend down / CORS issue)
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    // If network error occurred (e.g. backend down / connection refused)
     if (MOCK_FALLBACK_ENABLED) {
       const mock = getMockResponse(endpoint, method, bodyData);
       if (mock) {
         console.warn(`[API Fallback] Network request failed (${error?.message}). Serving mock data for: [${method}] ${endpoint}`);
         return mock;
       }
-    }
-
-    if (error instanceof ApiError) {
-      throw error;
     }
 
     const sanitized = getSanitizedError({
