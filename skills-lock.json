@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "build-awwwards-quality-sites": {
+      "source": "MengTo/Skills",
+      "sourceType": "github",
+      "skillPath": "agent-skills/web-design/build-awwwards-quality-sites/SKILL.md",
+      "computedHash": "5a1bb2b382c617361c7984c036a834b4153f9160bcb84fa189d005a9e192a2ac"
+    },
+    "design-first-ui-prompting": {
+      "source": "MengTo/Skills",
+      "sourceType": "github",
+      "skillPath": "agent-skills/ui/design-first-ui-prompting/SKILL.md",
+      "computedHash": "e18db870481191a0b71bedfaad4659b87860f9df55f370a5f0afce26185a74db"
+    },
+    "gsap": {
+      "source": "MengTo/Skills",
+      "sourceType": "github",
+      "skillPath": "agent-skills/web-design/gsap/SKILL.md",
+      "computedHash": "235082f472d7e1db0a290b694356d5544008c4feab1f2016b4e88b7834b8f091"
+    }
+  }
+}
