@@ -136,7 +136,6 @@ export function BranchForm({ merchantId, branch, merchant, trigger, open: contro
         phone: merchant?.contactPhone || '',
         lat: '',
         lng: '',
-        isActive: true,
       })
       setOperatingHours(getDefaultOperatingHours())
     }

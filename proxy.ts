@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UserRole, getRequiredRole, hasPermission } from '@/lib/auth/permissions';
 import { decodeJWT, isTokenExpired, validateToken } from '@/lib/auth/jwt';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip middleware for static assets, API routes, and public paths
