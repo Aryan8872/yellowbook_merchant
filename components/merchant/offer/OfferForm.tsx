@@ -32,6 +32,7 @@ import { useAuthStore } from '@/lib/auth'
 import { useCreateOffer, useUpdateOffer } from '@/lib/merchant/hooks/use-offers-query'
 import { Category } from '@/lib/api/categories-api'
 import { useCategories } from '@/lib/merchant/hooks/use-categories-query'
+import { useBranches } from '@/lib/merchant/hooks/use-branches-query'
 import { uploadOfferCoverImage, uploadOfferGalleryImage } from '@/lib/api/merchant/offers-api'
 import { showFormErrors } from '@/lib/utils/form-toast'
 import { cleanPayload } from '@/lib/utils/payload-cleanup'
@@ -67,6 +68,8 @@ const offerSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
   isActive: z.boolean(),
+  allBranches: z.boolean(),
+  branchIds: z.array(z.string()),
 })
 
 type OfferFormData = z.infer<typeof offerSchema>
@@ -102,6 +105,9 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
 
   const { data: categoriesData } = useCategories()
   const categories = categoriesData || []
+  const { data: branchesData } = useBranches(merchantId || '', { limit: 100 })
+  const branches = branchesData?.data || []
+
   const [coverImageFile, setCoverImageFile] = React.useState<File | null>(null)
   const [imageFiles, setImageFiles] = React.useState<File[]>([])
 
@@ -120,6 +126,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
       validFrom: '',
       validUntil: '',
       isActive: true,
+      allBranches: true,
+      branchIds: [],
     },
   })
 
@@ -128,6 +136,10 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
   // Populate form when editing or resetting
   React.useEffect(() => {
     if (open && offer) {
+      const explicitBranches = (offer as any).branches || []
+      const explicitBranchIds = (offer as any).branchIds || explicitBranches.map((b: any) => b.id)
+      const hasSpecificBranches = Array.isArray(explicitBranchIds) && explicitBranchIds.length > 0 && explicitBranchIds.length < (branches.length || 1)
+
       reset({
         title: offer.title,
         description: offer.description,
@@ -141,6 +153,8 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
         validFrom: offer.validFrom ? new Date(offer.validFrom).toISOString().split('T')[0] : '',
         validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().split('T')[0] : '',
         isActive: offer.isActive ?? true,
+        allBranches: !hasSpecificBranches,
+        branchIds: explicitBranchIds || [],
       })
     } else if (open && !offer) {
       // New offer opened: preset with first category if not already set
@@ -157,9 +171,11 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
         validFrom: '',
         validUntil: '',
         isActive: true,
+        allBranches: true,
+        branchIds: [],
       })
     }
-  }, [open, offer, categories.length, reset])
+  }, [open, offer, categories.length, branches.length, reset])
 
   function handleOpenChange(next: boolean) {
     if (createOfferMutation.isPending || updateOfferMutation.isPending) return
@@ -191,6 +207,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
       validFrom: data.validFrom ? new Date(data.validFrom).toISOString() : undefined,
       validUntil: data.validUntil ? new Date(data.validUntil).toISOString() : undefined,
       isActive: data.isActive,
+      branchIds: data.allBranches ? [] : (data.branchIds || []),
     }
 
     try {
@@ -531,6 +548,85 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
                 />
               </Field>
             </div>
+
+            {/* Branch Allocation */}
+            <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-semibold">Branch Availability</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Select where this offer can be claimed and displayed on maps.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <Checkbox
+                  id="offer-all-branches"
+                  checked={form.watch('allBranches')}
+                  onCheckedChange={(checked) => {
+                    const isAll = !!checked
+                    form.setValue('allBranches', isAll)
+                    if (isAll) {
+                      form.setValue('branchIds', [])
+                    }
+                  }}
+                />
+                <Label htmlFor="offer-all-branches" className="cursor-pointer font-medium">
+                  Apply to all branches ({branches.length})
+                </Label>
+              </div>
+
+              {!form.watch('allBranches') && (
+                <div className="mt-3 space-y-2 border-t pt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Choose specific branch locations:
+                  </p>
+                  {branches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No branches registered yet.</p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1">
+                      {branches.map((branch) => {
+                        const currentIds = form.watch('branchIds') || []
+                        const isSelected = currentIds.includes(branch.id)
+                        return (
+                          <div
+                            key={branch.id}
+                            className="flex items-center space-x-2 rounded-md border p-2 text-sm hover:bg-accent/40"
+                          >
+                            <Checkbox
+                              id={`branch-${branch.id}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                const next = checked
+                                  ? [...currentIds, branch.id]
+                                  : currentIds.filter((id) => id !== branch.id)
+                                form.setValue('branchIds', next)
+                              }}
+                            />
+                            <Label
+                              htmlFor={`branch-${branch.id}`}
+                              className="cursor-pointer text-xs font-normal leading-tight"
+                            >
+                              <span className="font-semibold">{branch.name}</span>
+                              <span className="block text-muted-foreground text-[10px]">
+                                {branch.address} {branch.district ? `(${branch.district})` : ''}
+                              </span>
+                            </Label>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {form.watch('branchIds')?.length === 0 && (
+                    <p className="text-xs text-amber-600">
+                      Please select at least one branch, or toggle "Apply to all branches".
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="offer-active"

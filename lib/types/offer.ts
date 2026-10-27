@@ -54,4 +54,14 @@ export type Offer={
     merchantId?:string;
     merchantName?:string;
     merchant?: Merchant;
+    branches?: Array<{
+      id: string;
+      name: string;
+      address: string;
+      district?: string;
+      city?: string;
+      lat: number;
+      lng: number;
+    }>;
+    branchIds?: string[];
 } 
