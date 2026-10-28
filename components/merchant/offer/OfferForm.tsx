@@ -138,7 +138,7 @@ export function OfferFormDialog({ offer, trigger, open: controlledOpen, onOpenCh
     if (open && offer) {
       const explicitBranches = (offer as any).branches || []
       const explicitBranchIds = (offer as any).branchIds || explicitBranches.map((b: any) => b.id)
-      const hasSpecificBranches = Array.isArray(explicitBranchIds) && explicitBranchIds.length > 0 && explicitBranchIds.length < (branches.length || 1)
+      const hasSpecificBranches = Array.isArray(explicitBranchIds) && explicitBranchIds.length > 0
 
       reset({
         title: offer.title,
